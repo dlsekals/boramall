@@ -1,0 +1,52 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f0f2f5;
+  --foreground: #202124;
+  --primary: #673ab7; /* Google Form Purple */
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: "Roboto", Arial, sans-serif;
+}
+
+/* Accessibility: Larger base font size */
+html {
+  font-size: 18px;
+}
+
+/* Utility for card style */
+@layer components {
+  .google-form-card {
+    @apply bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden max-w-xl mx-auto;
+  }
+  .google-form-header {
+    @apply h-2.5 bg-[#673ab7];
+  }
+}
+
+@theme {
+  --animate-pulse-subtle: pulse-subtle 2s infinite ease-in-out;
+  --animate-shimmer: shimmer 2.5s infinite linear;
+
+  @keyframes pulse-subtle {
+    0%, 100% { transform: scale(1); box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); }
+    50% { transform: scale(1.05); box-shadow: 0 10px 15px -3px rgb(103 58 183 / 0.4); }
+  }
+
+  @keyframes shimmer {
+    0% { transform: translateX(-100%) skewX(-20deg); }
+    100% { transform: translateX(200%) skewX(-20deg); }
+  }
+}
+
+/* Hide scrollbar utility */
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

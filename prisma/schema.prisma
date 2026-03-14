@@ -1,0 +1,58 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("POSTGRES_PRISMA_URL")
+  directUrl = env("POSTGRES_URL_NON_POOLING")
+}
+
+model User {
+  nickname      String   @id // Unique ID (e.g., @gildong)
+  name          String
+  phone         String
+  address       String
+  registeredAt  String
+  youtubeHandle String?
+  isBlacklisted Boolean  @default(false)
+  orders        Order[]
+}
+
+model Product {
+  id             String   @id
+  name           String
+  price          Float
+  stock          Int
+  purchasePrice  Float?
+  isActive       Boolean  @default(true)
+  updatedAt      String?
+  isConsignment  Boolean  @default(false)
+  vendorName     String?
+  expirationDate String?
+}
+
+model Order {
+  id                String      @id
+  userId            String
+  user              User        @relation(fields: [userId], references: [nickname])
+  items             OrderItem[]
+  totalPrice        Float
+  createdAt         String
+  isPaid            Boolean     @default(false)
+  trackingNumber    String?
+  deliveryStatus    String?
+  isExportedToExcel Boolean     @default(false)
+}
+
+model OrderItem {
+  id            String   @id @default(cuid())
+  orderId       String
+  order         Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productName   String
+  price         Float
+  quantity      Int
+  purchasePrice Float?
+  isConsignment Boolean  @default(false)
+  vendorName    String?
+}
