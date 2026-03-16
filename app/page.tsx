@@ -485,10 +485,7 @@ function LoginContent() {
                     </div>
                     <div className="flex flex-col gap-0.5 sm:gap-1 mt-1">
                       <p className="text-xs sm:text-sm text-[#8b5cf6] font-bold break-keep leading-[1.3] tracking-tight">
-                        💡 유튜브 닉네임을 정확히 기재해야 주문이 원활하게 적용됩니다.
-                      </p>
-                      <p className="text-[11px] sm:text-xs text-gray-500 font-medium pl-1">
-                        예) @다다-h4k
+                        💡 유튜브 닉네임을 정확히 기재해야 주문이 원활하게 적용됩니다. <span className="text-red-500">예) @다다-h4k</span>
                       </p>
                     </div>
                   </div>
