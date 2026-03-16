@@ -471,7 +471,16 @@ function LoginContent() {
                         className="flex-1 min-w-0 pr-2.5 py-1.5 sm:p-2.5 focus:outline-none text-sm sm:text-base bg-transparent"
                       />
                     </div>
-                    <p className="text-[11px] text-[#8b5cf6] font-bold break-keep leading-[1.2] tracking-tight">💡 유튜브 닉네임을 정확히 기재해야 주문이 원활하게 적용됩니다.</p>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 mt-0.5">
+                      <p className="text-[11px] text-[#8b5cf6] font-bold break-keep leading-[1.2] tracking-tight">💡 유튜브 닉네임을 정확히 기재해야 주문이 원활하게 적용됩니다.</p>
+                      <button 
+                        type="button" 
+                        onClick={() => window.open('https://m.youtube.com/account', '_blank')}
+                        className="self-end sm:self-auto flex items-center gap-1 bg-[#ff0000] text-white text-[10px] sm:text-xs font-bold px-2.5 py-1 rounded-full shadow hover:bg-[#cc0000] active:scale-95 transition-all w-fit"
+                      >
+                        <span>▶</span> 내 닉네임 찾기
+                      </button>
+                    </div>
                   </div>
                 </div>
                 
