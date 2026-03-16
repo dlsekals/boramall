@@ -474,7 +474,7 @@ function LoginContent() {
                       </div>
                       <button 
                         type="button" 
-                        onClick={() => window.open('https://m.youtube.com/account', '_blank')}
+                        onClick={() => window.open('https://youtube.com/handle', '_blank')}
                         className="px-2.5 py-1.5 sm:py-2.5 bg-gradient-to-b from-[#ff4d4d] to-[#cc0000] text-white rounded-xl font-bold text-xs sm:text-sm shadow-[0_3px_0_#990000,0_4px_4px_rgba(0,0,0,0.2)] active:shadow-[0_0px_0_#990000,0_1px_2px_rgba(0,0,0,0.3)] active:translate-y-[3px] transition-all shrink-0 flex items-center justify-center gap-1 sm:gap-1.5 border border-[#cc0000]"
                       >
                         <svg viewBox="0 0 24 24" fill="currentColor" className="w-[14px] h-[14px] sm:w-[16px] sm:h-[16px]">
