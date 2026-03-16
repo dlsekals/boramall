@@ -21,12 +21,12 @@ export default function InventoryTab() {
 
   const handleAddProduct = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newProduct.name || !newProduct.price || !newProduct.stock) return;
+    if (!newProduct.name || !newProduct.stock) return;
 
     const product: Product = {
       id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       name: newProduct.name,
-      price: Number(newProduct.price),
+      price: newProduct.price ? Number(newProduct.price) : 0,
       purchasePrice: newProduct.purchasePrice ? Number(newProduct.purchasePrice) : 0,
       stock: Number(newProduct.stock),
       isActive: true, // Default to active
@@ -251,10 +251,10 @@ export default function InventoryTab() {
       {/* Add Product Section */}
       <div className="bg-white py-3 px-6 rounded-lg shadow-sm">
         <h2 className="text-lg font-bold mb-2">상품 추가</h2>
-        <form onSubmit={handleAddProduct} className="flex flex-col gap-3">
-          <div className="flex flex-col sm:flex-row gap-4 items-end">
+        <form onSubmit={handleAddProduct} className="flex flex-col gap-1.5 sm:gap-3">
+          <div className="flex flex-col sm:flex-row gap-1.5 sm:gap-4 items-end">
             <div className="flex-[2] w-full">
-              <label className="block text-sm text-gray-600 mb-1">상품명</label>
+              <label className="block text-xs sm:text-sm text-gray-600 mb-0.5">상품명</label>
               <input
                 type="text"
                 className="w-full border p-2 rounded"
@@ -264,7 +264,7 @@ export default function InventoryTab() {
               />
             </div>
             <div className="w-full sm:w-32">
-              <label className="block text-sm text-gray-600 mb-1">매입가 (원)</label>
+              <label className="block text-xs sm:text-sm text-gray-600 mb-0.5">매입가 (원)</label>
               <input
                 type="number"
                 step="100"
@@ -275,18 +275,18 @@ export default function InventoryTab() {
               />
             </div>
             <div className="w-full sm:w-32">
-              <label className="block text-sm text-gray-600 mb-1">판매가 (원)</label>
+              <label className="block text-xs sm:text-sm text-gray-600 mb-0.5">판매가 (원)</label>
               <input
                 type="number"
                 step="100"
                 className="w-full border p-2 rounded"
                 value={newProduct.price}
                 onChange={(e) => setNewProduct({...newProduct, price: e.target.value})}
-                placeholder="0"
+                placeholder="미정"
               />
             </div>
             <div className="w-full sm:w-32">
-              <label className="block text-sm text-gray-600 mb-1">유통기한(YYMMDD)</label>
+              <label className="block text-xs sm:text-sm text-gray-600 mb-0.5">유통기한(YYMMDD)</label>
               <input
                 type="text"
                 maxLength={8}
@@ -297,7 +297,7 @@ export default function InventoryTab() {
               />
             </div>
             <div className="w-full sm:w-24">
-              <label className="block text-sm text-gray-600 mb-1">재고</label>
+              <label className="block text-xs sm:text-sm text-gray-600 mb-0.5">재고</label>
               <input
                 type="number"
                 className="w-full border p-2 rounded"
@@ -306,7 +306,7 @@ export default function InventoryTab() {
                 placeholder="0"
               />
             </div>
-            <button type="submit" className="bg-[#673ab7] text-white px-6 py-2 rounded font-bold hover:bg-[#5e35b1] w-full sm:w-auto h-[42px]">
+            <button type="submit" className="bg-[#673ab7] text-white px-6 py-2 rounded font-bold hover:bg-[#5e35b1] w-full sm:w-auto h-[42px] mt-1 sm:mt-0">
               추가
             </button>
           </div>
@@ -362,8 +362,8 @@ export default function InventoryTab() {
                 </div>
             </div>
         </div>
-        <div className="overflow-x-auto min-h-[600px]">
-          <table className="w-full text-left text-xs sm:text-sm table-fixed">
+        <div className="overflow-x-auto min-h-[600px] border border-gray-200 rounded-md">
+          <table className="w-full min-w-[850px] text-left text-xs sm:text-sm table-fixed">
             <colgroup>
               <col className="w-[35px]" />  {/* 활성 */}
               <col className="w-[30%]" />   {/* 상품명 - 넉넉하게 유지 */}
@@ -442,7 +442,7 @@ export default function InventoryTab() {
                 </tr>
               ) : displayProducts.map((product) => {
                   const purchasePrice = product.purchasePrice || 0;
-                  const margin = product.price - purchasePrice;
+                  const margin = product.price > 0 ? product.price - purchasePrice : 0;
                   const marginRate = product.price > 0 ? ((margin / product.price) * 100).toFixed(1) : '0';
                   
                   return (
@@ -543,19 +543,25 @@ export default function InventoryTab() {
                               onChange={(e) => updateProduct({...product, price: Number(e.target.value)})}
                               onFocus={() => startEditing(product.id)}
                               onBlur={() => stopEditing()}
-                              className="w-full bg-transparent border-none focus:ring-1 focus:ring-[#673ab7] rounded p-0.5 text-right font-bold text-xs"
-                              placeholder="0"
+                              className={`w-full bg-transparent border-none focus:ring-1 focus:ring-[#673ab7] rounded p-0.5 text-right font-bold text-xs ${product.price === 0 ? 'bg-red-50 text-red-500 placeholder-red-400' : ''}`}
+                              placeholder={product.price === 0 ? "미정" : "0"}
                           />
-                          <span className="text-gray-800 text-[10px]">원</span>
+                          {product.price > 0 && <span className="text-gray-800 text-[10px]">원</span>}
                         </div>
                       </td>
                       <td className="px-2 align-middle text-right">
-                          <span className={`text-xs font-medium ${margin > 0 ? 'text-green-600' : 'text-red-500'}`}>
-                             {marginRate}%
-                          </span>
-                          <div className="text-[10px] text-gray-400">
-                              ({margin.toLocaleString()})
-                          </div>
+                        {product.price === 0 ? (
+                            <span className="text-[10px] font-bold text-red-500 bg-red-50 px-1.5 py-0.5 rounded border border-red-100 whitespace-nowrap">판매가 미정</span>
+                        ) : (
+                          <>
+                            <span className={`text-xs font-medium ${margin > 0 ? 'text-green-600' : 'text-red-500'}`}>
+                               {marginRate}%
+                            </span>
+                            <div className="text-[10px] text-gray-400">
+                                ({margin.toLocaleString()})
+                            </div>
+                          </>
+                        )}
                       </td>
                       <td className="px-2 align-middle text-right">
                              <input 

@@ -660,26 +660,30 @@ export default function OrderEntryTab() {
                     {filteredSearchProducts.length === 0 ? (
                         <li className="p-3 text-gray-500">검색 결과가 없습니다.</li>
                     ) : (
-                        filteredSearchProducts.map(p => (
+                        filteredSearchProducts.map(p => {
+                            const isMissingPrice = p.price === 0;
+                            const isUnavailable = p.stock <= 0 || isMissingPrice;
+                            return (
                             <li 
                                 key={p.id} 
                                 onClick={() => {
-                                    if (p.stock <= 0) return;
+                                    if (isUnavailable) return;
                                     setSelectedProductId(p.id);
                                     setSearchQuery(p.name);
                                     setIsDropdownOpen(false);
                                 }}
-                                className={`py-1.5 px-3 border-b last:border-0 ${p.stock <= 0 ? 'bg-gray-50 text-gray-400 cursor-not-allowed' : 'hover:bg-[#f3effb] cursor-pointer'} ${selectedProductId === p.id ? 'bg-[#ede7f6]' : ''}`}
+                                className={`py-1.5 px-3 border-b last:border-0 ${isUnavailable ? 'bg-gray-50 text-gray-400 cursor-not-allowed' : 'hover:bg-[#f3effb] cursor-pointer'} ${selectedProductId === p.id ? 'bg-[#ede7f6]' : ''}`}
                             >
                                 <div className="flex justify-between items-center text-sm sm:text-base gap-2">
-                                    <span className="font-medium text-gray-800 flex-1">{p.name} <span className={`text-xs ${p.stock <= 0 ? 'text-gray-400' : 'text-gray-500'} font-normal`}>({p.price.toLocaleString()}원)</span></span>
+                                    <span className={`font-medium flex-1 ${isMissingPrice ? 'text-gray-400' : 'text-gray-800'}`}>{p.name} <span className={`text-xs ${isUnavailable ? 'text-gray-400' : 'text-gray-500'} font-normal`}>({isMissingPrice ? '가격 미정' : p.price.toLocaleString() + '원'})</span></span>
                                     <div className="flex items-center gap-2 shrink-0">
-                                        <span className={`text-xs sm:text-sm ${p.stock <= 0 ? 'text-red-400 font-bold' : 'text-emerald-600 font-medium'}`}>
-                                            {p.stock <= 0 ? '품절' : `재고: ${p.stock}개`}
+                                        <span className={`text-xs sm:text-sm ${isMissingPrice ? 'text-red-500 font-bold' : p.stock <= 0 ? 'text-red-400 font-bold' : 'text-emerald-600 font-medium'}`}>
+                                            {isMissingPrice ? '주문불가' : p.stock <= 0 ? '품절' : `재고: ${p.stock}개`}
                                         </span>
                                         <button 
                                             onClick={(e) => handleCopyProductInfo(e, p)}
-                                            className="px-2 py-1 bg-gray-100 hover:bg-gray-200 text-gray-600 text-xs rounded transition-colors border shadow-sm flex items-center gap-1 active:scale-95"
+                                            disabled={isMissingPrice}
+                                            className={`px-2 py-1 rounded transition-colors border shadow-sm flex items-center gap-1 active:scale-95 text-xs ${isMissingPrice ? 'bg-gray-50 text-gray-300 border-gray-100 cursor-not-allowed' : 'bg-gray-100 hover:bg-gray-200 text-gray-600'}`}
                                             title="방송용 문구 복사"
                                         >
                                             {copiedProductId === p.id ? '✅ 복사됨' : '📋 복사'}
@@ -687,7 +691,7 @@ export default function OrderEntryTab() {
                                     </div>
                                 </div>
                             </li>
-                        ))
+                        )})
                     )}
                 </ul>
             )}
@@ -794,21 +798,29 @@ export default function OrderEntryTab() {
                       {recentProducts.length === 0 ? (
                           <p className="text-xs text-gray-400 text-center py-4">최근 판매 내역이 없습니다.</p>
                       ) : (
-                          recentProducts.map(product => (
+                          recentProducts.map(product => {
+                              const isMissingPrice = product.price === 0;
+                              return (
                               <button
                                   key={product.id}
-                                  onClick={() => handleProductQuickAdd(product)}
-                                  className={`w-full text-left px-3 py-2 bg-gray-50 hover:bg-emerald-50 border hover:border-emerald-500 rounded text-sm transition-colors group ${selectedProductId === product.id ? 'border-emerald-500 bg-emerald-50 shadow-sm' : ''}`}
+                                  onClick={() => {
+                                      if (isMissingPrice) {
+                                          alert('판매가가 미정인 상품은 주문할 수 없습니다. 재고 관리 탭에서 판매가를 먼저 입력해주세요.');
+                                          return;
+                                      }
+                                      handleProductQuickAdd(product);
+                                  }}
+                                  className={`w-full text-left px-3 py-2 bg-gray-50 border rounded text-sm transition-colors group ${selectedProductId === product.id ? 'border-emerald-500 bg-emerald-50 shadow-sm' : isMissingPrice ? 'opacity-50 cursor-not-allowed' : 'hover:bg-emerald-50 hover:border-emerald-500'}`}
                               >
-                                  <div className={`font-bold truncate ${selectedProductId === product.id ? 'text-emerald-700' : 'text-gray-800 group-hover:text-emerald-600'}`}>
+                                  <div className={`font-bold truncate ${selectedProductId === product.id ? 'text-emerald-700' : isMissingPrice ? 'text-gray-400' : 'text-gray-800 group-hover:text-emerald-600'}`}>
                                       {product.name}
                                   </div>
                                   <div className="text-xs text-gray-500 truncate mt-0.5 flex justify-between items-center">
-                                      <span>{product.price.toLocaleString()}원</span>
-                                      <span className={`${product.stock <= 0 ? 'text-red-400 font-bold' : 'text-emerald-600'}`}>{product.stock <= 0 ? '품절' : `잔여: ${product.stock}개`}</span>
+                                      <span>{isMissingPrice ? '가격 미정' : product.price.toLocaleString() + '원'}</span>
+                                      <span className={`${isMissingPrice ? 'text-red-500 font-bold' : product.stock <= 0 ? 'text-red-400 font-bold' : 'text-emerald-600'}`}>{isMissingPrice ? '주문불가' : product.stock <= 0 ? '품절' : `잔여: ${product.stock}개`}</span>
                                   </div>
                               </button>
-                          ))
+                          )})
                       )}
                   </div>
               </div>
