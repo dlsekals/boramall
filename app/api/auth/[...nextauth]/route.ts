@@ -1,8 +1,21 @@
 import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
+import GoogleProvider from "next-auth/providers/google";
 
 const handler = NextAuth({
   providers: [
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID || "",
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
+      authorization: {
+        params: {
+          scope: "openid email profile https://www.googleapis.com/auth/youtube.readonly https://www.googleapis.com/auth/youtube.force-ssl",
+          prompt: "consent",
+          access_type: "offline",
+          response_type: "code"
+        }
+      }
+    }),
     CredentialsProvider({
       name: "Admin Login",
       credentials: {
@@ -28,8 +41,15 @@ const handler = NextAuth({
     maxAge: 30 * 24 * 60 * 60, // 30 days
   },
   callbacks: {
-    async jwt({ token, user }) {
-      if (user) {
+    async jwt({ token, user, account }) {
+      if (account && user) {
+        if (account.provider === 'google') {
+           token.accessToken = account.access_token;
+           token.refreshToken = account.refresh_token;
+           token.role = "admin";
+        }
+      }
+      if (user && !account) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         token.role = (user as any).role;
       }
@@ -39,6 +59,10 @@ const handler = NextAuth({
       if (session.user) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (session.user as any).role = token.role;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (session as any).accessToken = token.accessToken;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (session as any).refreshToken = token.refreshToken;
       }
       return session;
     }
