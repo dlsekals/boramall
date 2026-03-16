@@ -363,18 +363,18 @@ export default function InventoryTab() {
             </div>
         </div>
         <div className="overflow-x-auto min-h-[600px] border border-gray-200 rounded-md">
-          <table className="w-full min-w-[850px] text-left text-xs sm:text-sm table-fixed">
+          <table className="min-w-[1000px] text-left text-xs sm:text-sm table-fixed">
             <colgroup>
-              <col className="w-[35px]" />  {/* 활성 */}
-              <col className="w-[30%]" />   {/* 상품명 - 넉넉하게 유지 */}
-              <col className="w-[50px]" />  {/* 위탁 */}
-              <col className="w-[13.5%]" /> {/* 입고일 - 겹침 방지를 위해 확대 */}
-              <col className="w-[13.5%]" /> {/* 유통기한 - 겹침 방지를 위해 확대 */}
-              <col className="w-[8%]" />    {/* 매입 */}
-              <col className="w-[8%]" />    {/* 판매 */}
-              <col className="w-[7.5%]" />  {/* 마진 */}
-              <col className="w-[5.5%]" />  {/* 재고 */}
-              <col className="w-[40px]" />  {/* 삭제 */}
+              <col className="w-[4%]" />  {/* 활성 */}
+              <col className="w-[18%]" />   {/* 상품명 */}
+              <col className="w-[6%]" />  {/* 위탁 */}
+              <col className="w-[13%]" />   {/* 입고일 */}
+              <col className="w-[13%]" />   {/* 유통기한 */}
+              <col className="w-[12%]" />   {/* 매입 */}
+              <col className="w-[12%]" />   {/* 판매 */}
+              <col className="w-[9%]" />    {/* 마진 */}
+              <col className="w-[8%]" />    {/* 재고 */}
+              <col className="w-[5%]" />    {/* 삭제 */}
             </colgroup>
             <thead className="bg-gray-50 text-gray-500 font-medium border-b">
               <tr className="h-[32px]">
