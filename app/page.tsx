@@ -455,40 +455,41 @@ function LoginContent() {
                 <div className="flex items-start gap-1.5 sm:gap-2 pt-0.5">
                   <label className="w-[50px] shrink-0 flex items-center justify-center bg-[#8b5cf6] py-2 sm:py-3 rounded-md text-sm font-bold text-white tracking-tight shadow-sm">닉네임</label>
                   <div className="flex-1 min-w-0 flex flex-col gap-0.5 sm:gap-1">
-                    <div className={`flex items-center w-full min-w-0 border rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-[#8b5cf6] transition-colors shadow-inner ${emptyFields.includes('nickname') ? 'border-red-500 bg-red-50' : 'border-gray-200 bg-white/90'}`}>
-                      <span className="pl-2.5 sm:pl-3 pr-1 text-gray-400 font-bold select-none cursor-default py-1.5 sm:py-2.5">@</span>
-                      <input 
-                        name="nickname"
-                        type="text" 
-                        value={formData.nickname.replace(/^@/, '')}
-                        onChange={(e) => {
-                          setFormData({ ...formData, nickname: e.target.value });
-                          if (emptyFields.includes('nickname')) {
-                            setEmptyFields(prev => prev.filter(f => f !== 'nickname'));
-                          }
-                        }}
-                        placeholder="유튜브 닉네임"
-                        className="flex-1 min-w-0 pr-2.5 py-1.5 sm:p-2.5 focus:outline-none text-sm sm:text-base bg-transparent"
-                      />
-                    </div>
-                    <div className="flex flex-col gap-1.5 mt-1">
-                      <p className="text-[11px] text-[#8b5cf6] font-bold break-keep leading-[1.2] tracking-tight">💡 유튜브 닉네임을 정확히 기재해야 주문이 원활하게 적용됩니다.</p>
-                      
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2 sm:p-2.5 bg-gray-50 border border-gray-100 rounded-lg">
-                        <p className="text-[11px] sm:text-xs text-gray-600 font-bold break-keep leading-[1.3] tracking-tight">
-                          🤔 닉네임을 모를땐? 버튼을 눌러 확인하세요 👉
-                        </p>
-                        <button 
-                          type="button" 
-                          onClick={() => window.open('https://m.youtube.com/account', '_blank')}
-                          className="self-end sm:self-auto flex items-center justify-center gap-1.5 bg-gradient-to-b from-[#ff4d4d] to-[#cc0000] text-white text-[11px] sm:text-xs font-bold px-3 py-1.5 rounded-lg shadow-[0_3px_0_#990000,0_4px_4px_rgba(0,0,0,0.2)] active:shadow-[0_0px_0_#990000,0_1px_2px_rgba(0,0,0,0.3)] active:translate-y-[3px] transition-all w-fit whitespace-nowrap border border-[#cc0000]"
-                        >
-                          <svg viewBox="0 0 24 24" fill="currentColor" className="w-[14px] h-[14px] sm:w-[16px] sm:h-[16px]">
-                            <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
-                          </svg>
-                          내 닉네임 찾기
-                        </button>
+                    <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+                      <div className={`flex items-center flex-1 min-w-0 border rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-[#8b5cf6] transition-colors shadow-inner ${emptyFields.includes('nickname') ? 'border-red-500 bg-red-50' : 'border-gray-200 bg-white/90'}`}>
+                        <span className="pl-2.5 sm:pl-3 pr-1 text-gray-400 font-bold select-none cursor-default py-1.5 sm:py-2.5">@</span>
+                        <input 
+                          name="nickname"
+                          type="text" 
+                          value={formData.nickname.replace(/^@/, '')}
+                          onChange={(e) => {
+                            setFormData({ ...formData, nickname: e.target.value });
+                            if (emptyFields.includes('nickname')) {
+                              setEmptyFields(prev => prev.filter(f => f !== 'nickname'));
+                            }
+                          }}
+                          placeholder="유튜브 닉네임"
+                          className="flex-1 min-w-0 pr-2.5 py-1.5 sm:p-2.5 focus:outline-none text-sm sm:text-base bg-transparent"
+                        />
                       </div>
+                      <button 
+                        type="button" 
+                        onClick={() => window.open('https://m.youtube.com/account', '_blank')}
+                        className="px-2.5 py-1.5 sm:py-2.5 bg-gradient-to-b from-[#ff4d4d] to-[#cc0000] text-white rounded-xl font-bold text-xs sm:text-sm shadow-[0_3px_0_#990000,0_4px_4px_rgba(0,0,0,0.2)] active:shadow-[0_0px_0_#990000,0_1px_2px_rgba(0,0,0,0.3)] active:translate-y-[3px] transition-all shrink-0 flex items-center justify-center gap-1 sm:gap-1.5 border border-[#cc0000]"
+                      >
+                        <svg viewBox="0 0 24 24" fill="currentColor" className="w-[14px] h-[14px] sm:w-[16px] sm:h-[16px]">
+                          <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                        </svg>
+                        <span>닉네임 찾기</span>
+                      </button>
+                    </div>
+                    <div className="flex flex-col gap-0.5 sm:gap-1 mt-1">
+                      <p className="text-xs sm:text-sm text-[#8b5cf6] font-bold break-keep leading-[1.3] tracking-tight">
+                        💡 유튜브 닉네임을 정확히 기재해야 주문이 원활하게 적용됩니다.
+                      </p>
+                      <p className="text-[11px] sm:text-xs text-gray-500 font-medium pl-1">
+                        예) @다다-h4k
+                      </p>
                     </div>
                   </div>
                 </div>
