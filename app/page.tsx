@@ -552,7 +552,7 @@ function LoginContent() {
                   backgroundColor: agreedPrivacy ? '#7c3aed' : 'white',
                   backgroundImage: agreedPrivacy ? `url("data:image/svg+xml,%3csvg viewBox='0 0 16 16' fill='white' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z'/%3e%3c/svg%3e")` : 'none',
                 }}
-                className="w-5 h-5 border-[1.5px] border-[#7c3aed] rounded-sm cursor-pointer shrink-0 transition-colors"
+                className="w-5 h-5 border-2 border-[#6d28d9] rounded-sm cursor-pointer shrink-0 transition-colors"
               />
               <label htmlFor="privacyAgree" className="text-[13.5px] text-gray-700 cursor-pointer select-none tracking-tight">
                 (필수 체크) 개인정보 수집 및 이용 처리방침 동의
