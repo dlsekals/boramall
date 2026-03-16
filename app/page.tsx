@@ -471,15 +471,24 @@ function LoginContent() {
                         className="flex-1 min-w-0 pr-2.5 py-1.5 sm:p-2.5 focus:outline-none text-sm sm:text-base bg-transparent"
                       />
                     </div>
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 mt-0.5">
-                      <p className="text-[11px] text-[#8b5cf6] font-bold break-keep leading-[1.2] tracking-tight">💡 닉네임을 모를땐? 버튼을 눌러 확인하세요.</p>
-                      <button 
-                        type="button" 
-                        onClick={() => window.open('https://m.youtube.com/account', '_blank')}
-                        className="self-end sm:self-auto flex items-center justify-center gap-1 bg-gray-600 text-white text-[11px] sm:text-xs font-bold px-3 py-1.5 rounded shadow-sm hover:bg-gray-700 active:scale-95 transition-all w-fit whitespace-nowrap"
-                      >
-                        내 닉네임 찾기
-                      </button>
+                    <div className="flex flex-col gap-1.5 mt-1">
+                      <p className="text-[11px] text-[#8b5cf6] font-bold break-keep leading-[1.2] tracking-tight">💡 유튜브 닉네임을 정확히 기재해야 주문이 원활하게 적용됩니다.</p>
+                      
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2 sm:p-2.5 bg-gray-50 border border-gray-100 rounded-lg">
+                        <p className="text-[11px] sm:text-xs text-gray-600 font-bold break-keep leading-[1.3] tracking-tight">
+                          🤔 닉네임을 모를땐? 버튼을 눌러 확인하세요 👉
+                        </p>
+                        <button 
+                          type="button" 
+                          onClick={() => window.open('https://m.youtube.com/account', '_blank')}
+                          className="self-end sm:self-auto flex items-center justify-center gap-1.5 bg-gradient-to-b from-[#ff4d4d] to-[#cc0000] text-white text-[11px] sm:text-xs font-bold px-3 py-1.5 rounded-lg shadow-[0_3px_0_#990000,0_4px_4px_rgba(0,0,0,0.2)] active:shadow-[0_0px_0_#990000,0_1px_2px_rgba(0,0,0,0.3)] active:translate-y-[3px] transition-all w-fit whitespace-nowrap border border-[#cc0000]"
+                        >
+                          <svg viewBox="0 0 24 24" fill="currentColor" className="w-[14px] h-[14px] sm:w-[16px] sm:h-[16px]">
+                            <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                          </svg>
+                          내 닉네임 찾기
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
