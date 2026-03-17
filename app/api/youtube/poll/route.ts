@@ -102,7 +102,7 @@ export async function POST(req: Request) {
         });
 
         if (!user) {
-          unregisteredUsers.push(`@${authorName}`);
+          unregisteredUsers.push(authorName);
           logs.push({ message: `Unregistered user requested order: ${authorName}`, type: 'warning' });
           continue;
         }
@@ -160,12 +160,18 @@ export async function POST(req: Request) {
     const replies: string[] = [];
     
     if (successOrders.length > 0) {
-      const names = successOrders.map(o => `@${o.name}(${o.qty})`).join(', ');
+      const names = successOrders.map(o => {
+          const name = o.name.startsWith('@') ? o.name : `@${o.name}`;
+          return `${name}(${o.qty})`;
+      }).join(', ');
       replies.push(`[${product.name}] ${names}님 주문 완료 되었습니다 😊 남은 수량은 ${currentStock}개 입니다.`);
     }
 
     if (outOfStockOrders.length > 0) {
-      const names = outOfStockOrders.map(o => `@${o.name}(${o.qty})`).join(', ');
+      const names = outOfStockOrders.map(o => {
+          const name = o.name.startsWith('@') ? o.name : `@${o.name}`;
+          return `${name}(${o.qty})`;
+      }).join(', ');
       // If stock is 0, mention sold out completely
       if (currentStock === 0) {
         replies.push(`[${product.name}] ${names}님 상품이 매진 되었습니다! 죄송합니다 😭`);
@@ -176,7 +182,7 @@ export async function POST(req: Request) {
 
     if (unregisteredUsers.length > 0) {
       // Group up to 3 names per message to keep it short
-      const names = unregisteredUsers.slice(0, 3).join(', ');
+      const names = unregisteredUsers.map(name => name.startsWith('@') ? name : `@${name}`).slice(0, 3).join(', ');
       const suffix = unregisteredUsers.length > 3 ? ` 외 ${unregisteredUsers.length - 3}명` : '';
       replies.push(`${names}${suffix}님 회원가입 및 유튜브 아이디(핸들) 등록 먼저 부탁드립니다 😊`);
     }
