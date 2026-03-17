@@ -68,9 +68,10 @@ export default function AdminPage() {
           
           {/* Tabs */}
           <div 
-            className="flex items-center justify-start md:justify-end gap-1.5 sm:gap-2 overflow-x-auto w-full pb-1 md:pb-0 [&::-webkit-scrollbar]:hidden"
+            className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto w-full pb-1 md:pb-0 [&::-webkit-scrollbar]:hidden flex-nowrap shrink-0 md:shrink md:flex-1"
             style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
           >
+            <div className="md:ml-auto flex items-center gap-1.5 sm:gap-2 shrink-0">
             {[
               { id: 'users', icon: '👥', label: '회원 관리' },
               { id: 'inventory', icon: '📦', label: '재고 관리' },
@@ -92,6 +93,7 @@ export default function AdminPage() {
                 <span>{tab.label.split(' ')[0]}<span className="hidden sm:inline"> {tab.label.split(' ')[1]}</span></span>
               </button>
             ))}
+            </div>
           </div>
         </div>
       </header>

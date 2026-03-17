@@ -42,17 +42,67 @@ export const authOptions: NextAuthOptions = {
   },
   callbacks: {
     async jwt({ token, user, account }) {
+      // 1. Initial sign in
       if (account && user) {
         if (account.provider === 'google') {
            token.accessToken = account.access_token;
-           token.refreshToken = account.refresh_token;
+           // Google requires prompt="consent" to receive refresh token, which we have in options
+           token.refreshToken = account.refresh_token; 
+           // Calculate expiration time (typically 3600 seconds/1 hour from now)
+           // fallback to 1 hour if expires_at is undefined
+           token.accessTokenExpires = account.expires_at 
+             ? account.expires_at * 1000 
+             : Date.now() + 3600 * 1000;
            token.role = "admin";
+        } else {
+           // eslint-disable-next-line @typescript-eslint/no-explicit-any
+           token.role = (user as any).role;
+        }
+        return token;
+      }
+      
+      // 2. Return previous token if the access token has not expired yet
+      // buffer time: refresh 5 mins before expiry
+      if (token.accessTokenExpires && Date.now() < (token.accessTokenExpires as number) - 5 * 60 * 1000) {
+        return token;
+      }
+
+      // 3. Access token has expired, try to update it
+      if (token.refreshToken && typeof token.refreshToken === 'string') {
+        try {
+          console.log("Access token expired. Refreshing...");
+          const response = await fetch("https://oauth2.googleapis.com/token", {
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: new URLSearchParams({
+              client_id: process.env.GOOGLE_CLIENT_ID || "",
+              client_secret: process.env.GOOGLE_CLIENT_SECRET || "",
+              grant_type: "refresh_token",
+              refresh_token: token.refreshToken,
+            }),
+            method: "POST",
+          });
+
+          const tokens = await response.json();
+
+          if (!response.ok) {
+             throw tokens;
+          }
+
+          return {
+            ...token,
+            accessToken: tokens.access_token,
+            // Fall back to old refresh token
+            refreshToken: tokens.refresh_token ?? token.refreshToken,
+            accessTokenExpires: Date.now() + tokens.expires_in * 1000,
+          };
+        } catch (error) {
+          console.error("Error refreshing google access token", error);
+          // Return the token as is, but mark it with an error property
+          return { ...token, error: "RefreshAccessTokenError" as const };
         }
       }
-      if (user && !account) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        token.role = (user as any).role;
-      }
+
+      // Fallback
       return token;
     },
     async session({ session, token }) {
@@ -63,6 +113,9 @@ export const authOptions: NextAuthOptions = {
         (session as any).accessToken = token.accessToken;
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (session as any).refreshToken = token.refreshToken;
+        // Expose error text to client if refresh failed
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (session as any).error = token.error;
       }
       return session;
     }

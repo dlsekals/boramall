@@ -18,7 +18,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: 'Not authenticated with Google.' }, { status: 401 });
     }
 
-    const { liveChatId, nextPageToken, productId } = await req.json();
+    const { liveChatId, nextPageToken, productId, salesLimit, autoReply } = await req.json();
     if (!liveChatId || !productId) {
       return NextResponse.json({ success: false, error: 'liveChatId and productId are required' }, { status: 400 });
     }
@@ -53,9 +53,12 @@ export async function POST(req: Request) {
     }
 
     // Prepare lists for grouping replies
-    const successOrders: { name: string, qty: number }[] = [];
-    const outOfStockOrders: { name: string, qty: number }[] = [];
-    const unregisteredUsers: string[] = [];
+    const successOrders: { name: string, qty: number, fullName: string }[] = [];
+    const outOfStockOrders: { name: string, qty: number, fullName: string }[] = [];
+    const unregisteredUsers: { name: string, fullName: string }[] = [];
+    
+    // Check if salesLimit is reached *before* processing messages if it was passed
+    let reachedSalesLimit = false;
     
     // Prevent double processing in the same poll (e.g. someone spamming '1')
     // A more robust implementation would track processed message IDs in DB.
@@ -68,47 +71,83 @@ export async function POST(req: Request) {
     }
 
     let currentStock = product.stock;
+    // Calculate effective stock considering salesLimit
+    // If salesLimit is defined, effective stock is the minimum of currentStock and salesLimit
+    let effectiveStock = salesLimit !== undefined && salesLimit !== null ? Math.min(currentStock, salesLimit) : currentStock;
 
-    for (const msg of messages) {
-      const authorName = msg.authorDetails?.displayName || 'Unknown';
-      const text = msg.snippet?.displayMessage || '';
-      
-      // Basic logging of chat
-      // logs.push({ message: `${authorName}: ${text}`, type: 'chat' });
+    if (effectiveStock <= 0 && salesLimit !== undefined && salesLimit !== null) {
+      reachedSalesLimit = true;
+    }
 
-      // If text is a pure number (or has some padding spaces)
-      const sanitizedText = text.trim();
-      const qty = parseInt(sanitizedText, 10);
-      
-      // Check if it is a valid order command (e.g. "1", "2")
-      // Also ensure it is exactly a number to avoid parsing e.g. "1등"
-      if (!isNaN(qty) && qty > 0 && String(qty) === sanitizedText) {
+    if (!reachedSalesLimit) {
+      for (const msg of messages) {
+        const authorName = msg.authorDetails?.displayName || 'Unknown';
+        const channelId = msg.authorDetails?.channelId || '';
+        const text = msg.snippet?.displayMessage || '';
         
-        // Skip if author already processed in this batch to prevent spam
+        // Basic logging of chat
+        // logs.push({ message: `${authorName}: ${text}`, type: 'chat' });
+
+        // If text is a pure number (or has some padding spaces)
+        const sanitizedText = text.trim();
+        const qty = parseInt(sanitizedText, 10);
+      
+        // Check if it is a valid order command (e.g. "1", "2")
+        // Also ensure it is exactly a number to avoid parsing e.g. "1등"
+        if (!isNaN(qty) && qty > 0 && String(qty) === sanitizedText) {
+          
+          // Skip if author already processed in this batch to prevent spam
         const authorId = msg.authorDetails?.channelId || authorName;
         if (processedAuthors.has(authorId)) continue;
         processedAuthors.add(authorId);
 
         // Find user in DB by youtubeHandle or nickname
-        const user = await prisma.user.findFirst({
+        // Extra step: try to match by base nickname (ignoring things after '-')
+        const baseNameMatch = authorName.replace(/^@/, '').split('-')[0];
+        
+        // Extract 3 chars from channel ID immediately following "UC" (if present)
+        let channelSuffix = channelId.length >= 3 ? channelId.slice(-3) : channelId;
+        const ucIndex = channelId.indexOf('UC');
+        if (ucIndex !== -1 && channelId.length >= ucIndex + 5) {
+            channelSuffix = channelId.substring(ucIndex + 2, ucIndex + 5);
+        }
+        
+        // Final handle should not include @ according to the new requirements
+        const displayAuthorName = authorName.replace(/^@/, '');
+        const fullGeneratedHandle = `${displayAuthorName}(${channelSuffix})`;
+
+        let user = await prisma.user.findFirst({
           where: {
             OR: [
               { youtubeHandle: authorName },
-              { youtubeHandle: '@' + authorName }, // sometimes they missed the @
+              { youtubeHandle: '@' + authorName },
+              { youtubeHandle: fullGeneratedHandle },
               { nickname: authorName },
-              { nickname: '@' + authorName }
+              { nickname: '@' + authorName },
+              // Match just the base name
+              { nickname: baseNameMatch },
+              { nickname: '@' + baseNameMatch },
             ]
           }
         });
 
         if (!user) {
-          unregisteredUsers.push(authorName);
+          unregisteredUsers.push({ name: authorName, fullName: fullGeneratedHandle });
           logs.push({ message: `Unregistered user requested order: ${authorName}`, type: 'warning' });
           continue;
         }
 
+        // If user matched but their youtubeHandle is empty or doesn't have the suffix, update it automatically
+        if (user.youtubeHandle !== fullGeneratedHandle) {
+           user = await prisma.user.update({
+             where: { nickname: user.nickname }, // Use nickname, email doesn't exist
+             data: { youtubeHandle: fullGeneratedHandle }
+           });
+           logs.push({ message: `Auto-updated handle for ${user.nickname} to ${fullGeneratedHandle}`, type: 'info' });
+        }
+
         // Check stock
-        if (currentStock >= qty) {
+        if (effectiveStock >= qty) {
           // Process order
           try {
             await prisma.$transaction(async (tx) => {
@@ -142,53 +181,82 @@ export async function POST(req: Request) {
             });
 
             currentStock -= qty;
-            successOrders.push({ name: authorName, qty });
-            logs.push({ message: `Order processed: ${qty}x ${product.name} for ${authorName}`, type: 'success' });
+            effectiveStock -= qty;
+            successOrders.push({ name: authorName, qty, fullName: fullGeneratedHandle });
+            logs.push({ message: `Order processed: ${qty}x ${product.name} for ${fullGeneratedHandle}`, type: 'success' });
+            
+            if (effectiveStock === 0 && salesLimit !== undefined && salesLimit !== null) {
+               reachedSalesLimit = true;
+               break; // Stop processing further messages once sales limit is hit
+            }
             
           } catch (err: any) {
             console.error('Failed to create order:', err);
             logs.push({ message: `Transaction failed for ${authorName}: ${err.message}`, type: 'error' });
           }
         } else {
-          outOfStockOrders.push({ name: authorName, qty });
-          logs.push({ message: `Stock insufficient for ${authorName} (Req: ${qty}, Stock: ${currentStock})`, type: 'error' });
+          outOfStockOrders.push({ name: authorName, qty, fullName: fullGeneratedHandle });
+          logs.push({ message: `Stock insufficient for ${fullGeneratedHandle} (Req: ${qty}, Eff. Stock: ${effectiveStock})`, type: 'error' });
         }
-      }
-    }
+        }
+      } // end if valid order
+    } // end for loop
 
     // 2. Formulate and Send automated replies to YouTube Live Chat
     const replies: string[] = [];
     
     if (successOrders.length > 0) {
       const names = successOrders.map(o => {
-          const name = o.name.startsWith('@') ? o.name : `@${o.name}`;
-          return `${name}(${o.qty})`;
+          return `${o.fullName}(${o.qty})`;
       }).join(', ');
-      replies.push(`[${product.name}] ${names}님 주문 완료 되었습니다 😊 남은 수량은 ${currentStock}개 입니다.`);
+      
+      if (effectiveStock === 0 || reachedSalesLimit) {
+        replies.push(`[${product.name}] ${names}님 주문 완료 되었습니다 😊 상품이 매진되었습니다!`);
+      } else {
+        replies.push(`[${product.name}] ${names}님 주문 완료 되었습니다 😊 남은 수량은 ${effectiveStock}개 입니다.`);
+      }
+    }
+
+    if (reachedSalesLimit) {
+      // The user specifically requested that even if sold out, it should mention the successful buyers first if any
+      // This is already handled by the `successOrders` push above!
+      // Simply append a "Sold out!" message specifically for the sales limit.
+      const stopLimitMessage = `🔥 [${product.name}] 준비된 수량이 모두 매진 되었습니다! 🔥`;
+      if (!autoReply) replies.push(stopLimitMessage); // ensure it's in the list for critical delivery 
+      else replies[replies.length - 1] = stopLimitMessage; // or replace if autoReply handled it
+
+      const soldInThisPoll = successOrders.reduce((sum, o) => sum + o.qty, 0);
+
+    // Stop the bot completely since limit is reached
+      logs.push({ message: `Sales Limit reached. Preparing to stop bot.`, type: 'warning' });
+      // We do NOT return early here anymore. We let the loop below dispatch the replies.
     }
 
     if (outOfStockOrders.length > 0) {
       const names = outOfStockOrders.map(o => {
-          const name = o.name.startsWith('@') ? o.name : `@${o.name}`;
-          return `${name}(${o.qty})`;
+          return `${o.fullName}(${o.qty})`;
       }).join(', ');
       // If stock is 0, mention sold out completely
-      if (currentStock === 0) {
+      if (effectiveStock === 0) {
         replies.push(`[${product.name}] ${names}님 상품이 매진 되었습니다! 죄송합니다 😭`);
       } else {
-        replies.push(`[${product.name}] ${names}님 재고가 부족합니다 (잔여: ${currentStock}개) 😭`);
+        replies.push(`[${product.name}] ${names}님 재고가 부족합니다 (잔여: ${effectiveStock}개) 😭`);
       }
     }
 
     if (unregisteredUsers.length > 0) {
       // Group up to 3 names per message to keep it short
-      const names = unregisteredUsers.map(name => name.startsWith('@') ? name : `@${name}`).slice(0, 3).join(', ');
+      const names = unregisteredUsers.map(u => u.fullName).slice(0, 3).join(', ');
       const suffix = unregisteredUsers.length > 3 ? ` 외 ${unregisteredUsers.length - 3}명` : '';
       replies.push(`${names}${suffix}님 회원가입 및 유튜브 아이디(핸들) 등록 먼저 부탁드립니다 😊`);
     }
 
+    // If autoReply is false, clear all normal order replies, 
+    // BUT keep critical system messages (like Sold Out) if we hit limits.
+    const finalRepliesToSent = autoReply ? replies : (reachedSalesLimit || effectiveStock === 0) ? [`🔥 [${product.name}] 준비된 수량이 모두 매진 되었습니다! 🔥`] : [];
+
     // Send replies to YouTube sequentially
-    for (const reply of replies) {
+    for (const reply of finalRepliesToSent) {
       try {
         await youtube.liveChatMessages.insert({
           part: ['snippet'],
@@ -211,11 +279,15 @@ export async function POST(req: Request) {
       }
     }
 
+    const soldInThisPoll = successOrders.reduce((sum, o) => sum + o.qty, 0);
+
     return NextResponse.json({ 
       success: true, 
       nextPageToken: newNextPageToken,
       pollingIntervalMillis,
-      logs 
+      logs,
+      stopBot: currentStock <= 0 || reachedSalesLimit,
+      soldAmount: soldInThisPoll
     });
 
   } catch (error: any) {
