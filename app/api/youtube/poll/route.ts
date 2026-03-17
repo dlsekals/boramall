@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { google } from 'googleapis';
 import prisma from '@/lib/prisma';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 
 interface PollLog {
   message: string;
@@ -10,7 +11,7 @@ interface PollLog {
 
 export async function POST(req: Request) {
   try {
-    const session = await getServerSession();
+    const session = await getServerSession(authOptions);
     
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     if (!session || !(session as any).accessToken) {
