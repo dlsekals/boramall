@@ -31,6 +31,11 @@ export default function BotPage() {
   const [selectedProductId, setSelectedProductId] = useState('');
   const [salesLimit, setSalesLimit] = useState<string>(''); // Added sales limit state
   
+  // Product search states
+  const [productSearchQuery, setProductSearchQuery] = useState('');
+  const [isProductDropdownOpen, setIsProductDropdownOpen] = useState(false);
+  const productDropdownRef = useRef<HTMLDivElement>(null);
+  
   const [isConnecting, setIsConnecting] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const [isBotRunning, setIsBotRunning] = useState(false);
@@ -67,6 +72,17 @@ export default function BotPage() {
       logsEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [logs]);
+
+  // Click outside to close product dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (productDropdownRef.current && !productDropdownRef.current.contains(event.target as Node)) {
+        setIsProductDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const addLog = (message: string, type: LogEntry['type'] = 'info') => {
     setLogs(prev => [...prev.slice(-99), {
@@ -397,17 +413,60 @@ export default function BotPage() {
             <div className="space-y-4">
               <div>
                 <label className="block text-xs font-bold text-gray-500 mb-1">판매 대기 중인 상품 선택</label>
-                <select 
-                  className="w-full text-sm p-3 border rounded-lg focus:ring-2 focus:ring-[#673ab7] outline-none disabled:bg-gray-100"
-                  value={selectedProductId}
-                  onChange={(e) => setSelectedProductId(e.target.value)}
-                  disabled={!isConnected || isBotRunning}
-                >
-                  <option value="">상품을 선택하세요...</option>
-                  {products.map(p => (
-                    <option key={p.id} value={p.id}>{p.name} (잔여재고: {p.stock}개)</option>
-                  ))}
-                </select>
+                <div className="relative" ref={productDropdownRef}>
+                  <input 
+                    type="text"
+                    value={productSearchQuery}
+                    onChange={(e) => {
+                      setProductSearchQuery(e.target.value);
+                      setIsProductDropdownOpen(true);
+                      setSelectedProductId('');
+                    }}
+                    onFocus={() => setIsProductDropdownOpen(true)}
+                    disabled={!isConnected || isBotRunning}
+                    placeholder="상품을 검색하거나 선택하세요..."
+                    className={`w-full text-sm p-3 border rounded-lg focus:ring-2 focus:ring-[#673ab7] outline-none disabled:bg-gray-100 pr-10 ${selectedProductId ? 'border-[#673ab7] bg-[#f8f5ff] font-bold text-[#673ab7]' : ''}`}
+                  />
+                  <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                    {productSearchQuery && !isBotRunning && (
+                      <button
+                        type="button"
+                        onClick={() => { setProductSearchQuery(''); setSelectedProductId(''); setIsProductDropdownOpen(true); }}
+                        className="text-gray-400 hover:text-gray-600 w-6 h-6 flex items-center justify-center text-xs"
+                      >✕</button>
+                    )}
+                    <div 
+                      className="cursor-pointer text-gray-400 p-1"
+                      onClick={() => { if (!isBotRunning) setIsProductDropdownOpen(!isProductDropdownOpen); }}
+                    >
+                      {isProductDropdownOpen ? '▲' : '▼'}
+                    </div>
+                  </div>
+                  {isProductDropdownOpen && !isBotRunning && (
+                    <ul className="absolute z-20 w-full bg-white border mt-1 max-h-48 overflow-y-auto rounded-lg shadow-lg">
+                      {products.filter(p => p.name.toLowerCase().includes(productSearchQuery.toLowerCase())).length === 0 ? (
+                        <li className="p-3 text-gray-400 text-sm">검색 결과가 없습니다.</li>
+                      ) : (
+                        products.filter(p => p.name.toLowerCase().includes(productSearchQuery.toLowerCase())).map(p => (
+                          <li 
+                            key={p.id}
+                            onClick={() => {
+                              setSelectedProductId(p.id);
+                              setProductSearchQuery(p.name);
+                              setIsProductDropdownOpen(false);
+                            }}
+                            className={`py-2 px-3 text-sm cursor-pointer hover:bg-[#f3effb] border-b last:border-0 flex justify-between items-center ${selectedProductId === p.id ? 'bg-[#ede7f6]' : ''}`}
+                          >
+                            <span className="font-medium text-gray-800">{p.name}</span>
+                            <span className={`text-xs font-medium ${p.stock <= 0 ? 'text-red-400' : 'text-emerald-600'}`}>
+                              {p.stock <= 0 ? '품절' : `재고: ${p.stock}개`}
+                            </span>
+                          </li>
+                        ))
+                      )}
+                    </ul>
+                  )}
+                </div>
               </div>
 
               {selectedProduct && (
