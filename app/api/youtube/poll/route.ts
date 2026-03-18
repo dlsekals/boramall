@@ -287,7 +287,8 @@ export async function POST(req: Request) {
       pollingIntervalMillis,
       logs,
       stopBot: currentStock <= 0 || reachedSalesLimit,
-      soldAmount: soldInThisPoll
+      soldAmount: soldInThisPoll,
+      successOrders: successOrders.map(o => ({ name: o.name, qty: o.qty }))
     });
 
   } catch (error: any) {

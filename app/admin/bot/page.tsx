@@ -39,6 +39,9 @@ export default function BotPage() {
   const [autoReply, setAutoReply] = useState(false);
   const [isManualBroadcasting, setIsManualBroadcasting] = useState(false);
   
+  // Session order tracking for buyer summaries
+  const [sessionOrders, setSessionOrders] = useState<{name: string, qty: number}[]>([]);
+  
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const logsEndRef = useRef<HTMLDivElement>(null);
   
@@ -153,6 +156,11 @@ export default function BotPage() {
               : p
            ));
 
+           // Accumulate session orders for buyer summary
+           if (data.successOrders && data.successOrders.length > 0) {
+             setSessionOrders(prev => [...prev, ...data.successOrders]);
+           }
+
            // Update sales limit if applicable
            if (salesLimit) {
              setSalesLimit(prev => {
@@ -194,6 +202,7 @@ export default function BotPage() {
       if (!product) return;
 
       setIsBotRunning(true);
+      setSessionOrders([]); // Reset session orders on start
       addLog(`🚀 봇 작동 시작! 실시간 주문 접수를 대기합니다. ${salesLimit ? `(${salesLimit}개 한정 판매)` : ''}`, 'success');
       
       // Send initial announcement message
@@ -234,7 +243,12 @@ export default function BotPage() {
       
       const product = products.find(p => p.id === selectedProductId);
       if (product) {
-        const stopAnnouncement = `🔥 ${product.name} 방송 판매를 종료합니다! 감사합니다 😊`;
+        // Build buyer summary from accumulated session orders
+        const buyerSummary = buildBuyerSummary();
+        const totalQty = sessionOrders.reduce((sum, o) => sum + o.qty, 0);
+        const stopAnnouncement = totalQty > 0
+          ? `🔥 ${product.name} 방송 판매를 종료합니다!\n${buyerSummary} 총 ${totalQty}개 주문 완료! 감사합니다 😊`
+          : `🔥 ${product.name} 방송 판매를 종료합니다! 감사합니다 😊`;
         try {
           fetch('/api/youtube/send', {
             method: 'POST',
@@ -252,13 +266,28 @@ export default function BotPage() {
     }
   };
 
+  // Helper to build buyer summary string like "@다다(1개), @보라몰(3개)"
+  const buildBuyerSummary = () => {
+    const sumMap: Record<string, number> = {};
+    sessionOrders.forEach(o => {
+      sumMap[o.name] = (sumMap[o.name] || 0) + o.qty;
+    });
+    return Object.entries(sumMap).map(([name, qty]) => `${name}(${qty}개)`).join(', ');
+  };
+
   const handleManualBroadcast = async () => {
     if (!liveChatId || !selectedProductId) return;
     const product = products.find(p => p.id === selectedProductId);
     if (!product) return;
 
     setIsManualBroadcasting(true);
-    const message = `🔥 [${product.name}] 절찬 판매중! 현재 잔여수량: ${product.stock}개 남았습니다! 주문을 서둘러주세요 😋`;
+    // Use salesLimit remaining if set, otherwise total stock
+    const remaining = salesLimit ? parseInt(salesLimit, 10) : product.stock;
+    const totalSold = sessionOrders.reduce((sum, o) => sum + o.qty, 0);
+    const buyerSummary = buildBuyerSummary();
+    const message = totalSold > 0
+      ? `🔥 [${product.name}] 절찬 판매중!\n${buyerSummary} 현재까지 ${totalSold}개 판매! 잔여수량: ${remaining}개! 주문을 서둘러주세요 😋`
+      : `🔥 [${product.name}] 절찬 판매중! 현재 잔여수량: ${remaining}개! 주문을 서둘러주세요 😋`;
     
     try {
       const res = await fetch('/api/youtube/send', {
@@ -507,7 +536,7 @@ export default function BotPage() {
                     </h3>
                 </div>
                 <div className="p-4 bg-white">
-                    <OrderEntryTab />
+                    <OrderEntryTab initialProductId={selectedProductId} />
                 </div>
             </div>
         </div>

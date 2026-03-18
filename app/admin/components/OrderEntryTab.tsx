@@ -3,8 +3,11 @@
 import { useState, useRef, useEffect } from 'react';
 import { useApp, User, Product } from '../../context/AppContext';
 
+interface OrderEntryTabProps {
+  initialProductId?: string;
+}
 
-export default function OrderEntryTab() {
+export default function OrderEntryTab({ initialProductId }: OrderEntryTabProps) {
   const { products, createOrder, users, updateUser, orders } = useApp();
   
   const [selectedProductId, setSelectedProductId] = useState('');
@@ -32,6 +35,17 @@ export default function OrderEntryTab() {
   const userDropdownRef = useRef<HTMLDivElement>(null);
   const [manualQuantity, setManualQuantity] = useState<number | ''>(1);
   const [quickSearchQuery, setQuickSearchQuery] = useState('');
+
+  // Auto-sync product selection from bot page
+  useEffect(() => {
+    if (initialProductId) {
+      setSelectedProductId(initialProductId);
+      const product = products.find(p => p.id === initialProductId);
+      if (product) {
+        setSearchQuery(product.name);
+      }
+    }
+  }, [initialProductId, products]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
