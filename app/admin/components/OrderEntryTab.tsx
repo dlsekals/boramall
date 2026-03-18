@@ -585,11 +585,13 @@ export default function OrderEntryTab({ initialProductId }: OrderEntryTabProps) 
                                       <button
                                           key={user.phone}
                                           onClick={() => { handleQuickAdd(user); setQuickSearchQuery(''); }}
-                                          className="w-full text-left px-2 py-1.5 bg-gray-50 hover:bg-[#ede7f6] border hover:border-[#673ab7] rounded text-xs transition-colors group flex items-center gap-1.5 min-w-0"
+                                          className="w-full text-left px-2 py-1.5 bg-gray-50 hover:bg-[#ede7f6] border hover:border-[#673ab7] rounded text-xs transition-colors group min-w-0"
                                       >
-                                          <span className="font-bold text-gray-800 group-hover:text-[#673ab7] truncate">{user.nickname}</span>
-                                          {user.youtubeHandle && <span className="text-gray-400 shrink-0">({user.youtubeHandle})</span>}
-                                          <span className="text-gray-500 truncate">{user.name}</span>
+                                          <div className="font-bold text-gray-800 group-hover:text-[#673ab7]">{user.nickname}</div>
+                                          <div className="text-gray-500 text-[10px] flex gap-1">
+                                            {user.youtubeHandle && <span className="text-gray-400">({user.youtubeHandle})</span>}
+                                            <span>{user.name}</span>
+                                          </div>
                                       </button>
                                   ))
                               )}
@@ -597,8 +599,8 @@ export default function OrderEntryTab({ initialProductId }: OrderEntryTabProps) 
                       </>
                   ) : (
                       <>
-                          <h2 className="text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
-                              <span className="text-[#673ab7]">⚡</span> 최근 주문자 퀵버튼
+                          <h2 className="text-sm font-bold text-gray-700 mb-2 flex items-center gap-1 whitespace-nowrap">
+                              <span className="text-[#673ab7]">⚡</span> 최근 주문자
                           </h2>
                           <div className="overflow-y-auto flex-1 pr-1 space-y-1 pb-2">
                               {recentBuyers.length === 0 ? (
@@ -608,11 +610,13 @@ export default function OrderEntryTab({ initialProductId }: OrderEntryTabProps) 
                                       <button
                                           key={user.phone}
                                           onClick={() => handleQuickAdd(user)}
-                                          className="w-full text-left px-2 py-1.5 bg-gray-50 hover:bg-[#ede7f6] border hover:border-[#673ab7] rounded text-xs transition-colors group flex items-center gap-1.5 min-w-0"
+                                          className="w-full text-left px-2 py-1.5 bg-gray-50 hover:bg-[#ede7f6] border hover:border-[#673ab7] rounded text-xs transition-colors group min-w-0"
                                       >
-                                          <span className="font-bold text-gray-800 group-hover:text-[#673ab7] truncate">{user.nickname}</span>
-                                          {user.youtubeHandle && <span className="text-gray-400 shrink-0">({user.youtubeHandle})</span>}
-                                          <span className="text-gray-500 truncate">{user.name}</span>
+                                          <div className="font-bold text-gray-800 group-hover:text-[#673ab7]">{user.nickname}</div>
+                                          <div className="text-gray-500 text-[10px] flex gap-1">
+                                            {user.youtubeHandle && <span className="text-gray-400">({user.youtubeHandle})</span>}
+                                            <span>{user.name}</span>
+                                          </div>
                                       </button>
                                   ))
                               )}
