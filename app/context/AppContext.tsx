@@ -87,6 +87,8 @@ interface AppContextType {
   // Admin Actions
   resetOrders: (archive?: boolean) => void;
   archiveOrders: () => void; // Explicit archive
+  refreshOrders: () => Promise<void>;
+  refreshProducts: () => Promise<void>;
 }
 
 // --- Context ---
@@ -155,6 +157,24 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
     fetchData();
   }, []);
+
+  const refreshOrders = async () => {
+    try {
+      const ordersRes = await fetch('/api/orders').then(res => res.json());
+      setOrders(Array.isArray(ordersRes) ? ordersRes : []);
+    } catch (err) {
+      console.error("Failed to refresh orders", err);
+    }
+  };
+
+  const refreshProducts = async () => {
+    try {
+      const productsRes = await fetch('/api/products').then(res => res.json());
+      setProducts(Array.isArray(productsRes) ? productsRes : []);
+    } catch (err) {
+      console.error("Failed to refresh products", err);
+    }
+  };
 
   useDbSync(users, '/api/users', 'nickname', isLoaded);
   useDbSync(products, '/api/products', 'id', isLoaded);
@@ -575,7 +595,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       
       createOrder, markOrderPaid, updateOrder, deleteOrder, mergeDuplicateOrders,
       updateDeliveryStatus, updateTrackingNumber, bulkUpdateTracking, markOrdersAsExported, processOrderCancellation,
-      resetOrders, archiveOrders
+      resetOrders, archiveOrders, refreshOrders, refreshProducts
     }}>
       {children}
     </AppContext.Provider>

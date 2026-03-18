@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import OrderEntryTab from '../components/OrderEntryTab';
+import { useApp } from '../../context/AppContext';
 
 interface Product {
   id: string;
@@ -24,6 +25,7 @@ interface LogEntry {
 export default function BotPage() {
   const { status } = useSession();
   const router = useRouter();
+  const { refreshOrders, refreshProducts } = useApp();
   
   const [videoUrl, setVideoUrl] = useState('');
   const [liveChatId, setLiveChatId] = useState('');
@@ -204,6 +206,9 @@ export default function BotPage() {
            pollIntervalRef.current = null;
            setSalesLimit('');
            addLog('🛑 매진 또는 한정 수량 도달로 봇이 자동 종료되었습니다.', 'warning');
+           // Refresh context so OrderEntryTab shows updated orders
+           refreshOrders();
+           refreshProducts();
         }
 
       } else {
@@ -266,6 +271,10 @@ export default function BotPage() {
       
       // Perform one final poll to catch any chats that happened right before stopping
       await pollChat();
+      
+      // Refresh context so OrderEntryTab shows updated orders
+      await refreshOrders();
+      await refreshProducts();
       
       const product = products.find(p => p.id === selectedProductId);
       if (product) {
