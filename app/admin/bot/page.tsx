@@ -53,7 +53,6 @@ export default function BotPage() {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const logsEndRef = useRef<HTMLDivElement>(null);
   
-  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const nextPageTokenRef = useRef<string>('');
 
   useEffect(() => {
@@ -135,10 +134,6 @@ export default function BotPage() {
     setIsBotRunning(false);
     setLiveChatId('');
     addLog('방송 연결 해제됨.', 'warning');
-    if (pollIntervalRef.current) {
-      clearInterval(pollIntervalRef.current);
-      pollIntervalRef.current = null;
-    }
   };
 
   const pollChat = async () => {
@@ -202,8 +197,6 @@ export default function BotPage() {
         // Stop bot if backend indicated limit reached (or stock empty)
         if (data.stopBot) {
            setIsBotRunning(false);
-           clearInterval(pollIntervalRef.current!);
-           pollIntervalRef.current = null;
            setSalesLimit('');
            addLog('🛑 매진 또는 한정 수량 도달로 봇이 자동 종료되었습니다.', 'warning');
            // Refresh context so OrderEntryTab shows updated orders
@@ -216,7 +209,6 @@ export default function BotPage() {
         if (data.error.includes("401") || data.error.includes("auth")) {
            addLog(`❌ Google 인증 오류가 발생했습니다. 권한을 다시 확인해주세요.`, 'error');
            setIsBotRunning(false);
-           clearInterval(pollIntervalRef.current!);
         }
       }
     } catch (error) {
@@ -258,16 +250,12 @@ export default function BotPage() {
         addLog(`안내 메시지 전송 오류: ${msg}`, 'error');
       }
 
-      // Initial poll immediately, then every 10 seconds (to save quota)
-      pollChat();
-      pollIntervalRef.current = setInterval(pollChat, 10000);
+      // No auto-polling! Polling happens only on manual broadcast or stop button
+      // This saves API quota dramatically
+      addLog('💡 수동 전송 버튼을 누르면 주문을 수집하고 현황을 전송합니다.', 'info');
     } else {
       setIsBotRunning(false);
       addLog('⏹️ 봇 작동 중지. 마지막 주문 접수를 확인하고 종료합니다...', 'warning');
-      if (pollIntervalRef.current) {
-        clearInterval(pollIntervalRef.current);
-        pollIntervalRef.current = null;
-      }
       
       // Perform one final poll to catch any chats that happened right before stopping
       await pollChat();
@@ -346,6 +334,12 @@ export default function BotPage() {
     if (!product) return;
 
     setIsManualBroadcasting(true);
+    
+    // Poll first to collect all orders since last poll
+    addLog('🔄 주문 수집 중...', 'info');
+    await pollChat();
+    await refreshOrders();
+    await refreshProducts();
     const remaining = salesLimit ? parseInt(salesLimit, 10) : product.stock;
     const totalSold = sessionOrders.reduce((sum, o) => sum + o.qty, 0);
     const buyerSummary = buildBuyerSummary();
@@ -383,12 +377,7 @@ export default function BotPage() {
     }
   };
 
-  // cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
-    };
-  }, []);
+
 
   if (status === 'loading' || status === 'unauthenticated') {
     return <div className="min-h-screen flex items-center justify-center bg-gray-50"><div className="animate-spin rounded-full h-12 w-12 border-t-2 border-[#673ab7]"></div></div>;
