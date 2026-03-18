@@ -46,6 +46,7 @@ export default function BotPage() {
   
   // Session order tracking for buyer summaries
   const [sessionOrders, setSessionOrders] = useState<{name: string, qty: number}[]>([]);
+  const [sessionUnregistered, setSessionUnregistered] = useState<string[]>([]);
   
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const logsEndRef = useRef<HTMLDivElement>(null);
@@ -188,6 +189,14 @@ export default function BotPage() {
            }
         }
 
+        // Accumulate unregistered users (deduplicate)
+        if (data.unregisteredUsers && data.unregisteredUsers.length > 0) {
+          setSessionUnregistered(prev => {
+            const combined = new Set([...prev, ...data.unregisteredUsers]);
+            return Array.from(combined);
+          });
+        }
+
         // Stop bot if backend indicated limit reached (or stock empty)
         if (data.stopBot) {
            setIsBotRunning(false);
@@ -219,6 +228,7 @@ export default function BotPage() {
 
       setIsBotRunning(true);
       setSessionOrders([]); // Reset session orders on start
+      setSessionUnregistered([]); // Reset unregistered users on start
       addLog(`🚀 봇 작동 시작! 실시간 주문 접수를 대기합니다. ${salesLimit ? `(${salesLimit}개 한정 판매)` : ''}`, 'success');
       
       // Send initial announcement message
@@ -262,13 +272,15 @@ export default function BotPage() {
         const buyerSummary = buildBuyerSummary();
         const totalQty = sessionOrders.reduce((sum, o) => sum + o.qty, 0);
         
-        // Only send stop message if there were actual sales
+        // Only send stop message if there were actual sales or unregistered users
+        const signupPrompt = buildSignupPrompt();
         if (totalQty > 0) {
           const remaining = salesLimit ? parseInt(salesLimit, 10) : product.stock;
           const isSoldOut = remaining <= 0;
-          const stopAnnouncement = isSoldOut
+          let stopAnnouncement = isSoldOut
             ? `[${product.name}] ${buyerSummary} \ud83d\udd25총 ${totalQty}개 전량 매진되었습니다\ud83d\udd25`
             : `[${product.name}] ${buyerSummary} 총 ${totalQty}개 주문 완료! \ud83d\udd25잔여수량 : ${remaining}개\ud83d\udd25 주문을 서둘러주세요\ud83d\ude0b`;
+          if (signupPrompt) stopAnnouncement += `\n${signupPrompt}`;
           try {
             fetch('/api/youtube/send', {
               method: 'POST',
@@ -277,6 +289,21 @@ export default function BotPage() {
             }).then(res => res.json()).then(data => {
               if (data.success) {
                 addLog(`종료 메시지 전송 완료: ${stopAnnouncement}`, 'info');
+              }
+            });
+          } catch (e) {
+            console.error(e);
+          }
+        } else if (signupPrompt) {
+          // Nothing sold but there are unregistered users
+          try {
+            fetch('/api/youtube/send', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ liveChatId, message: signupPrompt })
+            }).then(res => res.json()).then(data => {
+              if (data.success) {
+                addLog(`회원가입 안내 전송 완료: ${signupPrompt}`, 'info');
               }
             });
           } catch (e) {
@@ -298,6 +325,12 @@ export default function BotPage() {
     return Object.entries(sumMap).map(([name, qty]) => `${name}(${qty}개)`).join(', ');
   };
 
+  // Helper to build signup prompt for unregistered users
+  const buildSignupPrompt = () => {
+    if (sessionUnregistered.length === 0) return '';
+    return `${sessionUnregistered.join(', ')} 님 간단 회원가입 먼저 부탁드립니다!`;
+  };
+
   const handleManualBroadcast = async () => {
     if (!liveChatId || !selectedProductId) return;
     const product = products.find(p => p.id === selectedProductId);
@@ -317,6 +350,9 @@ export default function BotPage() {
     } else {
       message = `\ud83d\udd25 [${product.name}] 절찬 판매중! 현재 잔여수량: ${remaining}개! 주문을 서둘러주세요 \ud83d\ude0b`;
     }
+    // Append signup prompt if there are unregistered users
+    const signupPrompt = buildSignupPrompt();
+    if (signupPrompt) message += `\n${signupPrompt}`;
     
     try {
       const res = await fetch('/api/youtube/send', {

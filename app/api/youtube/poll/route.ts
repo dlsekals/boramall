@@ -302,7 +302,8 @@ export async function POST(req: Request) {
       logs,
       stopBot: currentStock <= 0 || reachedSalesLimit,
       soldAmount: soldInThisPoll,
-      successOrders: successOrders.map(o => ({ name: o.name, qty: o.qty }))
+      successOrders: successOrders.map(o => ({ name: o.name, qty: o.qty })),
+      unregisteredUsers: unregisteredUsers.map(u => u.fullName)
     });
 
   } catch (error: any) {
