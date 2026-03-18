@@ -243,24 +243,31 @@ export default function BotPage() {
       
       const product = products.find(p => p.id === selectedProductId);
       if (product) {
-        // Build buyer summary from accumulated session orders
         const buyerSummary = buildBuyerSummary();
         const totalQty = sessionOrders.reduce((sum, o) => sum + o.qty, 0);
-        const stopAnnouncement = totalQty > 0
-          ? `🔥 ${product.name} 방송 판매를 종료합니다!\n${buyerSummary} 총 ${totalQty}개 주문 완료! 감사합니다 😊`
-          : `🔥 ${product.name} 방송 판매를 종료합니다! 감사합니다 😊`;
-        try {
-          fetch('/api/youtube/send', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ liveChatId, message: stopAnnouncement })
-          }).then(res => res.json()).then(data => {
-            if (data.success) {
-              addLog(`종료 메시지 전송 완료: ${stopAnnouncement}`, 'info');
-            }
-          });
-        } catch (e) {
-          console.error(e);
+        
+        // Only send stop message if there were actual sales
+        if (totalQty > 0) {
+          const remaining = salesLimit ? parseInt(salesLimit, 10) : product.stock;
+          const isSoldOut = remaining <= 0;
+          const stopAnnouncement = isSoldOut
+            ? `[${product.name}] ${buyerSummary} \ud83d\udd25총 ${totalQty}개 전량 매진되었습니다\ud83d\udd25`
+            : `[${product.name}] ${buyerSummary} 총 ${totalQty}개 주문 완료! \ud83d\udd25잔여수량 : ${remaining}개\ud83d\udd25 주문을 서둘러주세요\ud83d\ude0b`;
+          try {
+            fetch('/api/youtube/send', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ liveChatId, message: stopAnnouncement })
+            }).then(res => res.json()).then(data => {
+              if (data.success) {
+                addLog(`종료 메시지 전송 완료: ${stopAnnouncement}`, 'info');
+              }
+            });
+          } catch (e) {
+            console.error(e);
+          }
+        } else {
+          addLog('주문 없이 종료되어 종료 메시지를 전송하지 않습니다.', 'info');
         }
       }
     }
@@ -281,13 +288,19 @@ export default function BotPage() {
     if (!product) return;
 
     setIsManualBroadcasting(true);
-    // Use salesLimit remaining if set, otherwise total stock
     const remaining = salesLimit ? parseInt(salesLimit, 10) : product.stock;
     const totalSold = sessionOrders.reduce((sum, o) => sum + o.qty, 0);
     const buyerSummary = buildBuyerSummary();
-    const message = totalSold > 0
-      ? `🔥 [${product.name}] 절찬 판매중!\n${buyerSummary} 현재까지 ${totalSold}개 판매! 잔여수량: ${remaining}개! 주문을 서둘러주세요 😋`
-      : `🔥 [${product.name}] 절찬 판매중! 현재 잔여수량: ${remaining}개! 주문을 서둘러주세요 😋`;
+    const isSoldOut = remaining <= 0;
+    
+    let message: string;
+    if (totalSold > 0 && isSoldOut) {
+      message = `[${product.name}] ${buyerSummary} \ud83d\udd25총 ${totalSold}개 전량 매진되었습니다\ud83d\udd25`;
+    } else if (totalSold > 0) {
+      message = `[${product.name}] ${buyerSummary} 총 ${totalSold}개 주문 완료! \ud83d\udd25잔여수량 : ${remaining}개\ud83d\udd25 주문을 서둘러주세요\ud83d\ude0b`;
+    } else {
+      message = `\ud83d\udd25 [${product.name}] 절찬 판매중! 현재 잔여수량: ${remaining}개! 주문을 서둘러주세요 \ud83d\ude0b`;
+    }
     
     try {
       const res = await fetch('/api/youtube/send', {

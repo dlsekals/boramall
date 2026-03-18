@@ -253,7 +253,21 @@ export async function POST(req: Request) {
 
     // If autoReply is false, clear all normal order replies, 
     // BUT keep critical system messages (like Sold Out) if we hit limits.
-    const finalRepliesToSent = autoReply ? replies : (reachedSalesLimit || effectiveStock === 0) ? [`🔥 [${product.name}] 준비된 수량이 모두 매진 되었습니다! 🔥`] : [];
+    let finalRepliesToSent: string[];
+    if (autoReply) {
+      finalRepliesToSent = replies;
+    } else if (reachedSalesLimit || effectiveStock === 0) {
+      // Build buyer summary for sold-out message
+      const buyerSummaryParts = successOrders.map(o => `${o.fullName}(${o.qty}개)`);
+      const totalSold = successOrders.reduce((sum, o) => sum + o.qty, 0);
+      if (totalSold > 0) {
+        finalRepliesToSent = [`[${product.name}] ${buyerSummaryParts.join(', ')} 🔥총 ${totalSold}개 전량 매진되었습니다🔥`];
+      } else {
+        finalRepliesToSent = [`🔥 [${product.name}] 준비된 수량이 모두 매진 되었습니다! 🔥`];
+      }
+    } else {
+      finalRepliesToSent = [];
+    }
 
     // Send replies to YouTube sequentially
     for (const reply of finalRepliesToSent) {
