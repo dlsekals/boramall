@@ -53,6 +53,7 @@ export default function BotPage() {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const logsEndRef = useRef<HTMLDivElement>(null);
   
+  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const nextPageTokenRef = useRef<string>('');
 
   useEffect(() => {
@@ -134,6 +135,10 @@ export default function BotPage() {
     setIsBotRunning(false);
     setLiveChatId('');
     addLog('방송 연결 해제됨.', 'warning');
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current);
+      pollIntervalRef.current = null;
+    }
   };
 
   const pollChat = async () => {
@@ -209,6 +214,10 @@ export default function BotPage() {
         if (data.error.includes("401") || data.error.includes("auth")) {
            addLog(`❌ Google 인증 오류가 발생했습니다. 권한을 다시 확인해주세요.`, 'error');
            setIsBotRunning(false);
+           if (pollIntervalRef.current) {
+             clearInterval(pollIntervalRef.current);
+             pollIntervalRef.current = null;
+           }
         }
       }
     } catch (error) {
@@ -250,12 +259,17 @@ export default function BotPage() {
         addLog(`안내 메시지 전송 오류: ${msg}`, 'error');
       }
 
-      // No auto-polling! Polling happens only on manual broadcast or stop button
-      // This saves API quota dramatically
-      addLog('💡 수동 전송 버튼을 누르면 주문을 수집하고 현황을 전송합니다.', 'info');
+      // Auto-poll every 30 seconds during live broadcast
+      pollChat();
+      pollIntervalRef.current = setInterval(pollChat, 30000);
+      addLog('💡 30초마다 자동 주문 수집! 수동 전송 버튼으로 즉시 수집도 가능합니다.', 'info');
     } else {
       setIsBotRunning(false);
       addLog('⏹️ 봇 작동 중지. 마지막 주문 접수를 확인하고 종료합니다...', 'warning');
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+        pollIntervalRef.current = null;
+      }
       
       // Perform one final poll to catch any chats that happened right before stopping
       await pollChat();
@@ -377,6 +391,12 @@ export default function BotPage() {
     }
   };
 
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+    };
+  }, []);
 
 
   if (status === 'loading' || status === 'unauthenticated') {

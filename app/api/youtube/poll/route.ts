@@ -101,39 +101,51 @@ export async function POST(req: Request) {
         if (processedAuthors.has(authorId)) continue;
         processedAuthors.add(authorId);
 
-        // Find user in DB by youtubeHandle or nickname
-        // Extra step: try to match by base nickname (ignoring things after '-')
-        const baseNameMatch = authorName.replace(/^@/, '').split('-')[0];
+        // Find user in DB - progressive matching strategy
+        const displayAuthorName = authorName.replace(/^@/, '');
         
-        // Extract 3 chars from channel ID immediately following "UC" (if present)
+        // Extract channel suffix for handle generation
         let channelSuffix = channelId.length >= 3 ? channelId.slice(-3) : channelId;
         const ucIndex = channelId.indexOf('UC');
         if (ucIndex !== -1 && channelId.length >= ucIndex + 5) {
             channelSuffix = channelId.substring(ucIndex + 2, ucIndex + 5);
         }
-        
-        // Final handle should not include @ according to the new requirements
-        const displayAuthorName = authorName.replace(/^@/, '');
         const fullGeneratedHandle = `${displayAuthorName}(${channelSuffix})`;
 
+        // Try multiple matching strategies in order of specificity
         let user = await prisma.user.findFirst({
           where: {
             OR: [
-              { youtubeHandle: authorName },
-              { youtubeHandle: '@' + authorName },
+              // Exact handle matches
               { youtubeHandle: fullGeneratedHandle },
+              { youtubeHandle: authorName },
+              { youtubeHandle: '@' + displayAuthorName },
+              { youtubeHandle: displayAuthorName },
+              // Exact nickname matches
               { nickname: authorName },
-              { nickname: '@' + authorName },
-              // Match just the base name
-              { nickname: baseNameMatch },
-              { nickname: '@' + baseNameMatch },
+              { nickname: '@' + displayAuthorName },
+              { nickname: displayAuthorName },
             ]
           }
         });
 
+        // Fallback: partial name matching (handles cases like "이경진" matching "@이경진" or "이경진님")
+        if (!user) {
+          user = await prisma.user.findFirst({
+            where: {
+              OR: [
+                { nickname: { contains: displayAuthorName } },
+                { name: displayAuthorName },
+                { name: { contains: displayAuthorName } },
+                { youtubeHandle: { contains: displayAuthorName } },
+              ]
+            }
+          });
+        }
+
         if (!user) {
           unregisteredUsers.push({ name: authorName, fullName: fullGeneratedHandle });
-          logs.push({ message: `Unregistered user requested order: ${authorName}`, type: 'warning' });
+          logs.push({ message: `미등록 사용자: ${authorName} (${fullGeneratedHandle})`, type: 'warning' });
           continue;
         }
 
