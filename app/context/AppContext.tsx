@@ -89,6 +89,7 @@ interface AppContextType {
   archiveOrders: () => void; // Explicit archive
   refreshOrders: () => Promise<void>;
   refreshProducts: () => Promise<void>;
+  refreshUsers: () => Promise<void>;
 }
 
 // --- Context ---
@@ -173,6 +174,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setProducts(Array.isArray(productsRes) ? productsRes : []);
     } catch (err) {
       console.error("Failed to refresh products", err);
+    }
+  };
+
+  const refreshUsers = async () => {
+    try {
+      const usersRes = await fetch('/api/users').then(res => res.json());
+      setUsers(Array.isArray(usersRes) ? usersRes : []);
+    } catch (err) {
+      console.error("Failed to refresh users", err);
     }
   };
 
@@ -595,7 +605,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       
       createOrder, markOrderPaid, updateOrder, deleteOrder, mergeDuplicateOrders,
       updateDeliveryStatus, updateTrackingNumber, bulkUpdateTracking, markOrdersAsExported, processOrderCancellation,
-      resetOrders, archiveOrders, refreshOrders, refreshProducts
+      resetOrders, archiveOrders, refreshOrders, refreshProducts, refreshUsers
     }}>
       {children}
     </AppContext.Provider>
