@@ -1,8 +1,21 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useApp } from '../context/AppContext';
+
+declare global {
+  interface Window {
+    google?: {
+      accounts: {
+        id: {
+          initialize: (config: Record<string, unknown>) => void;
+          renderButton: (element: HTMLElement, config: Record<string, unknown>) => void;
+        };
+      };
+    };
+  }
+}
 
 export default function SignupPage() {
   const router = useRouter();
@@ -15,6 +28,66 @@ export default function SignupPage() {
     address: ''
   });
   const [error, setError] = useState('');
+  const [googleUser, setGoogleUser] = useState<{ name: string; email: string; picture: string } | null>(null);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+
+  // Handle Google Sign-In response
+  const handleGoogleResponse = useCallback(async (response: { credential: string }) => {
+    setIsGoogleLoading(true);
+    try {
+      const res = await fetch('/api/auth/google-signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ credential: response.credential })
+      });
+      const data = await res.json();
+      
+      if (data.success && data.user) {
+        setGoogleUser(data.user);
+        // Auto-fill name from Google
+        setFormData(prev => ({
+          ...prev,
+          name: data.user.name || prev.name,
+          nickname: data.user.name || prev.nickname, // Use Google name as nickname
+        }));
+        setError('');
+      } else {
+        setError('구글 인증에 실패했습니다. 다시 시도해주세요.');
+      }
+    } catch {
+      setError('구글 인증 중 오류가 발생했습니다.');
+    } finally {
+      setIsGoogleLoading(false);
+    }
+  }, []);
+
+  // Load Google Sign-In SDK
+  useEffect(() => {
+    const script = document.createElement('script');
+    script.src = 'https://accounts.google.com/gsi/client';
+    script.async = true;
+    script.defer = true;
+    script.onload = () => {
+      if (window.google) {
+        window.google.accounts.id.initialize({
+          client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '',
+          callback: handleGoogleResponse,
+        });
+        const btnEl = document.getElementById('google-signin-btn');
+        if (btnEl) {
+          window.google.accounts.id.renderButton(btnEl, {
+            theme: 'outline',
+            size: 'large',
+            width: '100%',
+            text: 'signup_with',
+            locale: 'ko',
+          });
+        }
+      }
+    };
+    document.body.appendChild(script);
+    return () => { document.body.removeChild(script); };
+  }, [handleGoogleResponse]);
 
   // Handle back button on signup page
   useEffect(() => {
@@ -72,7 +145,8 @@ export default function SignupPage() {
       name: formData.name.trim(),
       phone: formData.phone.trim(),
       address: formData.address.trim(),
-      registeredAt: new Date().toISOString()
+      registeredAt: new Date().toISOString(),
+      youtubeHandle: googleUser ? finalNickname.trim() : undefined,
     });
 
     if (success) {
@@ -100,10 +174,43 @@ export default function SignupPage() {
             간편 주문 서비스
           </p>
         </div>
+
+        {/* Google Sign-In Section */}
+        {!googleUser ? (
+          <div className="mb-6">
+            <div className="text-center mb-3">
+              <p className="text-sm text-gray-600 font-medium">구글 계정으로 간편 가입</p>
+            </div>
+            <div className="flex justify-center" id="google-signin-btn">
+              {isGoogleLoading && (
+                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-[#673ab7]"></div>
+              )}
+            </div>
+            <div className="relative my-6">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-200"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-4 bg-white text-gray-400">또는 직접 입력</span>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="mb-6 bg-green-50 border border-green-200 rounded-xl p-4 flex items-center gap-3">
+            {googleUser.picture && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={googleUser.picture} alt="" className="w-10 h-10 rounded-full" />
+            )}
+            <div>
+              <p className="text-green-700 font-bold text-sm">✅ 구글 계정 연결 완료</p>
+              <p className="text-green-600 text-xs">{googleUser.email}</p>
+            </div>
+          </div>
+        )}
         
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">닉네임 (Unique ID)</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">유튜브 닉네임 (YouTube Nickname)</label>
             <div className={`flex items-center w-full min-w-0 border rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-[#673ab7] transition-colors border-gray-300 bg-white`}>
               <span className="pl-4 pr-1 text-gray-500 font-bold select-none cursor-default bg-gray-50 py-3 border-r border-gray-200 text-lg">@</span>
               <input 
@@ -114,11 +221,11 @@ export default function SignupPage() {
                   setFormData({ ...formData, nickname: e.target.value });
                   setError('');
                 }}
-                placeholder="유튜브 닉네임"
+                placeholder="유튜브에서 사용하는 닉네임"
                 className="flex-1 min-w-0 p-3 focus:outline-none text-lg bg-transparent"
               />
             </div>
-            <p className="text-xs text-gray-500 mt-1">* &apos;@&apos;는 자동으로 추가됩니다.</p>
+            <p className="text-xs text-gray-500 mt-1">⚠️ 유튜브 채팅에서 보이는 닉네임과 동일하게 입력해주세요!</p>
           </div>
 
           <div>
