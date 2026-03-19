@@ -157,17 +157,31 @@ export async function POST(req: Request) {
                 data: { stock: { decrement: qty } }
               });
               
-              const orderId = `ORD-${Date.now()}-${Math.floor(Math.random()*1000)}`;
-              
-              await tx.order.create({
-                data: {
-                  id: orderId,
+              // Check for existing unpaid order from today for this user
+              const todayStr = new Date().toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul' });
+              const existingOrder = await tx.order.findFirst({
+                where: {
                   userId: user.nickname,
-                  totalPrice: product.price * qty,
-                  createdAt: new Date().toISOString(),
                   isPaid: false,
-                  items: {
-                    create: {
+                  createdAt: todayStr,
+                },
+                include: { items: true }
+              });
+
+              if (existingOrder) {
+                // Merge: check if same product already in order
+                const existingItem = existingOrder.items.find(i => i.productName === product.name);
+                if (existingItem) {
+                  // Update quantity of existing item
+                  await tx.orderItem.update({
+                    where: { id: existingItem.id },
+                    data: { quantity: existingItem.quantity + qty }
+                  });
+                } else {
+                  // Add new item to existing order
+                  await tx.orderItem.create({
+                    data: {
+                      orderId: existingOrder.id,
                       productName: product.name,
                       price: product.price,
                       quantity: qty,
@@ -175,9 +189,36 @@ export async function POST(req: Request) {
                       isConsignment: product.isConsignment,
                       vendorName: product.vendorName
                     }
-                  }
+                  });
                 }
-              });
+                // Update total price
+                await tx.order.update({
+                  where: { id: existingOrder.id },
+                  data: { totalPrice: existingOrder.totalPrice + product.price * qty }
+                });
+              } else {
+                // Create new order
+                const orderId = `ORD-${Date.now()}-${Math.floor(Math.random()*1000)}`;
+                await tx.order.create({
+                  data: {
+                    id: orderId,
+                    userId: user.nickname,
+                    totalPrice: product.price * qty,
+                    createdAt: todayStr,
+                    isPaid: false,
+                    items: {
+                      create: {
+                        productName: product.name,
+                        price: product.price,
+                        quantity: qty,
+                        purchasePrice: product.purchasePrice,
+                        isConsignment: product.isConsignment,
+                        vendorName: product.vendorName
+                      }
+                    }
+                  }
+                });
+              }
             });
 
             currentStock -= qty;
