@@ -212,7 +212,7 @@ export default function OrderEntryTab({ initialProductId }: OrderEntryTabProps) 
       .slice(0, 5);
 
   const combinedUsers = [...recentUpdatedUsers, ...recentBuyersFromOrders];
-  const uniqueUsers = combinedUsers.filter((u, index, self) => index === self.findIndex((t) => t.phone === u.phone));
+  const uniqueUsers = combinedUsers.filter((u, index, self) => index === self.findIndex((t) => t.nickname === u.nickname));
 
   const recentBuyers = uniqueUsers.sort((a, b) => {
       const userOrdersA = orders.filter(o => o.userId === a.phone || o.userId === a.nickname);
