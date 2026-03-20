@@ -167,20 +167,20 @@ export default function InvoiceTemplate({ data, elementId = "invoice-capture", h
               </div>
               
               <div className="bg-white rounded border border-gray-200 shadow-sm w-[300px] flex flex-col items-center justify-center py-3 px-5 relative">
-                  <div className="font-extrabold text-[16px] text-[#311b92] mb-2.5 tracking-wider">
+                  <div className="font-extrabold text-[20px] text-[#4527a0] mb-2.5 tracking-wider">
                       입금하실 계좌
                   </div>
                   <div className="mb-2 mt-0.5">
                       <img src={cleanSaemaeul} alt="MG새마을금고" className="h-8 object-contain" />
                   </div>
                   
-                  <div className="mb-1 mt-1.5 bg-[#f4effa] px-3 py-1.5 rounded-lg w-full text-center border border-[#e8dff4] shadow-sm">
-                      <span className="text-[14px] font-bold text-gray-600 mr-2 tracking-tight">예금주 :</span>
-                      <span className="font-black text-[#5e2f94] text-[17px] tracking-tight">보라몰(인다민)</span>
+                  <div className="mt-1 mb-1.5">
+                      <p className="font-black text-[26px] text-[#4527a0] tracking-wider">010-6269-9612</p>
                   </div>
                   
-                  <div className="mt-0.5">
-                      <p className="font-black text-[26px] text-[#5e2f94] tracking-wider">010-6269-9612</p>
+                  <div className="mb-1 bg-[#f4effa] px-3 py-1.5 rounded-lg w-full text-center border border-[#e8dff4] shadow-sm">
+                      <span className="text-[14px] font-bold text-gray-600 mr-2 tracking-tight">예금주 :</span>
+                      <span className="font-black text-[#4527a0] text-[17px] tracking-tight">보라몰(인다민)</span>
                   </div>
               </div>
           </div>
