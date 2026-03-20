@@ -57,39 +57,8 @@ export default function InvoiceTemplate({ data, elementId = "invoice-capture", h
     if (saemaeulLogo) processImage(saemaeulLogo, setCleanSaemaeul);
   }, []);
 
-  const handleDownloadImage = async () => {
-    const element = document.getElementById(elementId);
-    if (!element) return;
-    
-    // Hide action buttons during capture
-    const buttonContainer = element.querySelector('.no-capture') as HTMLElement;
-    if (buttonContainer) buttonContainer.style.display = 'none';
+  // User requested removal of image save functionality
 
-    try {
-      const { toPng } = await import('html-to-image');
-      
-      // Pass 1: "Warm up" the SVG/DOM rendering to fix the blank image bug
-      await toPng(element, { cacheBust: true });
-      await new Promise(res => setTimeout(res, 50));
-      
-      // Pass 2: The actual high-res capture
-      const dataUrl = await toPng(element, { 
-        cacheBust: true, 
-        pixelRatio: 2, 
-        backgroundColor: '#ffffff' 
-      });
-      
-      const link = document.createElement("a");
-      link.href = dataUrl;
-      link.download = `Invoice_${data.customerName}.png`;
-      link.click();
-    } catch (error) {
-      console.error("Failed to generate image", error);
-      alert("이미지 저장 중 오류가 발생했습니다: " + String(error));
-    } finally {
-      if (buttonContainer) buttonContainer.style.display = '';
-    }
-  };
 
   // Theme Colors
   const themeColor = "bg-[#4527a0]"; // Luxurious Deep Purple
@@ -223,14 +192,8 @@ export default function InvoiceTemplate({ data, elementId = "invoice-capture", h
       {/* Action Buttons (Not Captured) */}
       {!hideButtons && (
          <div className="p-8 pt-0 no-capture print:hidden">
-             <button
-                onClick={handleDownloadImage}
-                className={`w-full py-4 rounded-lg shadow-lg text-white font-bold text-lg transition-transform hover:scale-[1.02] ${themeColor}`}
-              >
-                💾 이미지로 저장 (Save to Gallery)
-              </button>
               <div className="mt-4 text-center text-sm text-gray-400">
-                * 인쇄 시 배경 그래픽 옵션을 켜주세요.
+                * 화면을 캡처하거나 인쇄 기능을 이용해주세요. (인쇄 시 배경 그래픽 옵션을 켜주세요)
               </div>
           </div>
       )}
