@@ -2,6 +2,7 @@
 
 import { boramallLogo, saemaeulLogo } from './logos';
 import { useEffect, useState } from 'react';
+import html2canvas from 'html2canvas';
 
 export interface InvoiceData {
   customerName: string;
@@ -65,8 +66,15 @@ export default function InvoiceTemplate({ data, elementId = "invoice-capture", h
     if (buttonContainer) buttonContainer.style.display = 'none';
 
     try {
-      const { toPng } = await import('html-to-image');
-      const dataUrl = await toPng(element, { cacheBust: true, pixelRatio: 2, backgroundColor: '#ffffff' });
+      // Add a small delay so display:none renders before capturing
+      await new Promise(res => setTimeout(res, 100));
+      
+      const canvas = await html2canvas(element, { 
+        scale: 2, 
+        useCORS: true, 
+        backgroundColor: '#ffffff' 
+      });
+      const dataUrl = canvas.toDataURL('image/png');
       
       const link = document.createElement("a");
       link.href = dataUrl;
@@ -74,7 +82,7 @@ export default function InvoiceTemplate({ data, elementId = "invoice-capture", h
       link.click();
     } catch (error) {
       console.error("Failed to generate image", error);
-      alert("이미지 저장 중 오류가 발생했습니다.");
+      alert("이미지 저장 중 오류가 발생했습니다: " + String(error));
     } finally {
       if (buttonContainer) buttonContainer.style.display = '';
     }
