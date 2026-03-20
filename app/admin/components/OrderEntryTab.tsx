@@ -211,10 +211,25 @@ export default function OrderEntryTab({ initialProductId }: OrderEntryTabProps) 
       .sort((a, b) => new Date(b.updatedAt!).getTime() - new Date(a.updatedAt!).getTime())
       .slice(0, 5);
 
-  const recentBuyers = [...recentUpdatedUsers, ...recentBuyersFromOrders]
-      // Filter unique by phone
-      .filter((u, index, self) => index === self.findIndex((t) => t.phone === u.phone))
-      .slice(0, 15); // Show top 15 recent buyers
+  const combinedUsers = [...recentUpdatedUsers, ...recentBuyersFromOrders];
+  const uniqueUsers = combinedUsers.filter((u, index, self) => index === self.findIndex((t) => t.phone === u.phone));
+
+  const recentBuyers = uniqueUsers.sort((a, b) => {
+      const userOrdersA = orders.filter(o => o.userId === a.phone || o.userId === a.nickname);
+      const latestOrderTimeA = userOrdersA.length > 0 
+          ? Math.max(...userOrdersA.map(o => new Date(o.createdAt).getTime()))
+          : 0;
+
+      const userOrdersB = orders.filter(o => o.userId === b.phone || o.userId === b.nickname);
+      const latestOrderTimeB = userOrdersB.length > 0 
+          ? Math.max(...userOrdersB.map(o => new Date(o.createdAt).getTime()))
+          : 0;
+
+      const activityTimeA = Math.max(latestOrderTimeA, a.updatedAt ? new Date(a.updatedAt).getTime() : 0);
+      const activityTimeB = Math.max(latestOrderTimeB, b.updatedAt ? new Date(b.updatedAt).getTime() : 0);
+
+      return activityTimeB - activityTimeA;
+  }).slice(0, 15); // Show top 15 recent buyers
 
 
 
