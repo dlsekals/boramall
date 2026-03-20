@@ -59,13 +59,14 @@ export default function InvoiceTemplate({ data, elementId = "invoice-capture", h
   const handleDownloadImage = async () => {
     const element = document.getElementById(elementId);
     if (element) {
-      const { toPng } = await import('html-to-image');
-      
       const buttonContainer = element.querySelector('.no-capture') as HTMLElement;
       if (buttonContainer) buttonContainer.style.visibility = 'hidden';
 
       try {
-        const dataUrl = await toPng(element, { cacheBust: true, pixelRatio: 2 });
+        const html2canvas = (await import('html2canvas')).default;
+        const canvas = await html2canvas(element, { scale: 2, useCORS: true, logging: false, backgroundColor: '#ffffff' });
+        const dataUrl = canvas.toDataURL('image/png');
+        
         const link = document.createElement("a");
         link.href = dataUrl;
         link.download = `Invoice_${data.customerName}.png`;
@@ -99,7 +100,7 @@ export default function InvoiceTemplate({ data, elementId = "invoice-capture", h
             {/* Logo: base64 properly background-stripped natively */}
             <img src={cleanLogo} alt="보라몰" className="h-28 lg:h-32 object-contain transform scale-110 origin-left" />
         </div>
-        <div className="flex-1 flex justify-center items-center gap-2">
+        <div className="flex-1 flex justify-end items-center pr-10 lg:pr-24 gap-2">
             <div className={`${themeColor} text-white px-3 py-1 rounded text-[10px] font-bold tracking-widest`}>날짜</div>
             <div className="font-bold text-gray-700 text-sm tracking-widest bg-gray-50 px-4 py-1 rounded">{data.date}</div>
         </div>
@@ -186,7 +187,7 @@ export default function InvoiceTemplate({ data, elementId = "invoice-capture", h
               </div>
               
               <div className="bg-white rounded border border-gray-200 shadow-sm w-[340px] flex flex-col items-center justify-center py-4 px-6 relative">
-                  <div className="font-black text-[13px] bg-[#f5f5f5] px-4 py-1.5 rounded-full text-gray-600 mb-3 shadow-inner border border-gray-200 tracking-tight">
+                  <div className="font-extrabold text-[18px] text-[#311b92] mb-3 tracking-wider">
                       입금하실 계좌
                   </div>
                   <div className="mb-2.5 mt-1">
@@ -194,8 +195,8 @@ export default function InvoiceTemplate({ data, elementId = "invoice-capture", h
                   </div>
                   
                   <div className="mb-2 mt-2 bg-[#f4effa] px-4 py-2 rounded-lg w-full text-center border border-[#e8dff4] shadow-sm">
-                      <span className="text-[14px] font-bold text-gray-600 mr-2 tracking-tight">예금주 :</span>
-                      <span className="font-extrabold text-[#311b92] text-[17px] tracking-tight">보라몰(인다민)</span>
+                      <span className="text-[15px] font-bold text-gray-600 mr-2 tracking-tight">예금주 :</span>
+                      <span className="font-black text-[#5e2f94] text-[19px] tracking-tight">보라몰(인다민)</span>
                   </div>
                   
                   <div className="mt-0.5">
