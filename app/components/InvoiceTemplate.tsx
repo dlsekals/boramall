@@ -2,7 +2,6 @@
 
 import { boramallLogo, saemaeulLogo } from './logos';
 import { useEffect, useState } from 'react';
-import html2canvas from 'html2canvas';
 
 export interface InvoiceData {
   customerName: string;
@@ -62,19 +61,23 @@ export default function InvoiceTemplate({ data, elementId = "invoice-capture", h
     const element = document.getElementById(elementId);
     if (!element) return;
     
+    // Hide action buttons during capture
     const buttonContainer = element.querySelector('.no-capture') as HTMLElement;
     if (buttonContainer) buttonContainer.style.display = 'none';
 
     try {
-      // Add a small delay so display:none renders before capturing
-      await new Promise(res => setTimeout(res, 100));
+      const { toPng } = await import('html-to-image');
       
-      const canvas = await html2canvas(element, { 
-        scale: 2, 
-        useCORS: true, 
+      // Pass 1: "Warm up" the SVG/DOM rendering to fix the blank image bug
+      await toPng(element, { cacheBust: true });
+      await new Promise(res => setTimeout(res, 50));
+      
+      // Pass 2: The actual high-res capture
+      const dataUrl = await toPng(element, { 
+        cacheBust: true, 
+        pixelRatio: 2, 
         backgroundColor: '#ffffff' 
       });
-      const dataUrl = canvas.toDataURL('image/png');
       
       const link = document.createElement("a");
       link.href = dataUrl;
