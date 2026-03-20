@@ -143,7 +143,10 @@ export default function InvoiceTemplate({ data, elementId = "invoice-capture", h
           
           {/* Total Price Right Aligned */}
           <div className="flex justify-end items-end mt-4 mb-2 pr-4">
-              <span className="font-extrabold text-gray-800 mr-3 text-base">총금액</span>
+              <div className="flex flex-col items-end mr-3 mb-0.5">
+                  <span className="font-extrabold text-gray-800 text-base">총금액</span>
+                  <span className="text-[10px] font-bold text-gray-400 mt-[-2px]">(VAT 포함)</span>
+              </div>
               <div className="bg-[#ede7f6] px-3 py-1 rounded-lg border border-[#d1c4e9] shadow-sm">
                   <span className="font-black text-xl text-[#311b92] tracking-tight">
                       {data.totalPrice.toLocaleString()}<span className="text-lg font-black ml-1 text-[#311b92]">원</span>
@@ -156,13 +159,16 @@ export default function InvoiceTemplate({ data, elementId = "invoice-capture", h
       <div className="flex-1"></div>
 
       {/* Footer / Payment Methods */}
-      <div className="bg-[#f9f9fb] w-full pt-8 pb-6 px-12 border-t border-gray-100 break-inside-avoid shadow-inner mt-auto">
+      <div className="bg-[#f9f9fb] w-full pt-6 pb-6 px-12 border-t border-gray-100 break-inside-avoid shadow-inner mt-auto">
           <div className="flex items-start justify-between">
-              <div className="text-left flex-1 pr-4 pt-2">
-                  <p className="font-extrabold text-gray-700 text-[17px] mb-2">무통장 입금 계좌 안내</p>
-                  <p className="text-[12px] font-bold text-[#ff5252] break-keep leading-snug">
+              <div className="text-left flex-1 pr-4 pt-3">
+                  <p className="text-[13px] font-bold text-[#ff5252] break-keep leading-snug mb-3">
                     * 입금은 방송 다음날 오후 1시이전 미입금시<br/>
                     주문이 자동 취소 됩니다.
+                  </p>
+                  <p className="text-[12px] font-bold text-gray-500 break-keep leading-snug">
+                    * 사업자 번호로 영수증 발행 원하실 경우,<br/>
+                    따로 기입해 주시기 바랍니다.
                   </p>
               </div>
               
@@ -174,12 +180,12 @@ export default function InvoiceTemplate({ data, elementId = "invoice-capture", h
                       <img src={cleanSaemaeul} alt="MG새마을금고" className="h-8 object-contain" />
                   </div>
                   
-                  <div className="mt-1 mb-1.5">
+                  <div className="mt-1 mb-1">
                       <p className="font-black text-[26px] text-[#4527a0] tracking-wider">010-6269-9612</p>
                   </div>
                   
-                  <div className="mb-1 bg-[#f4effa] px-3 py-1.5 rounded-lg w-full text-center border border-[#e8dff4] shadow-sm">
-                      <span className="text-[14px] font-bold text-gray-600 mr-2 tracking-tight">예금주 :</span>
+                  <div className="mb-1 mt-1 w-full text-center">
+                      <span className="text-[15px] font-bold text-gray-600 mr-2 tracking-tight">예금주 :</span>
                       <span className="font-black text-[#4527a0] text-[17px] tracking-tight">보라몰(인다민)</span>
                   </div>
               </div>
