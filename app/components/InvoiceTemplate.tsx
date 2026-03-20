@@ -124,16 +124,16 @@ export default function InvoiceTemplate({ data, elementId = "invoice-capture", h
             <tbody>
               {data.items.map((item, index) => (
                 <tr key={index} className="border-b border-gray-100 last:border-0">
-                  <td className="py-1 px-4 font-black text-gray-900 text-[11px] break-words leading-tight">
+                  <td className="py-1.5 px-4 font-black text-gray-900 text-[12.5px] break-words leading-tight">
                     {item.name}
                   </td>
-                  <td className="py-1 px-4 text-center font-bold text-gray-800 whitespace-nowrap text-[11px]">
+                  <td className="py-1.5 px-4 text-center font-bold text-gray-800 whitespace-nowrap text-[11.5px]">
                     {item.quantity}
                   </td>
-                  <td className="py-1 px-4 text-center font-bold text-gray-800 whitespace-nowrap text-[11px]">
+                  <td className="py-1.5 px-4 text-center font-bold text-gray-800 whitespace-nowrap text-[11.5px]">
                     {item.price.toLocaleString()}
                   </td>
-                  <td className="py-1 px-4 text-center font-bold text-gray-800 whitespace-nowrap text-[11px]">
+                  <td className="py-1.5 px-4 text-center font-bold text-gray-800 whitespace-nowrap text-[11.5px]">
                     {(item.price * item.quantity).toLocaleString()}
                   </td>
                 </tr>
