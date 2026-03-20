@@ -28,8 +28,11 @@ export default function OrderManagementTab() {
       setExpandedOrders(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
+  // Hide physically archived orders from the active list
+  const activeOrders = orders.filter(o => !o.isArchived);
+
   // Sorting logic based on sortOrder state
-  const sortedOrders = [...orders].sort((a, b) => {
+  const sortedOrders = [...activeOrders].sort((a, b) => {
       if (sortOrder === 'price_desc') {
           return b.totalPrice - a.totalPrice;
       } else if (sortOrder === 'price_asc') {
@@ -311,14 +314,15 @@ export default function OrderManagementTab() {
   };
 
   // --- Statistics Calculations ---
-  const totalOrders = orders.length;
-  const totalRevenue = orders.reduce((sum, order) => sum + order.totalPrice, 0);
+  // Ensure we use only activeOrders here as well, so the top stats reflect the current list
+  const totalOrders = activeOrders.length;
+  const totalRevenue = activeOrders.reduce((sum, order) => sum + order.totalPrice, 0);
   
-  const paidOrders = orders.filter(o => o.isPaid);
+  const paidOrders = activeOrders.filter(o => o.isPaid);
   const paidCount = paidOrders.length;
   const paidTotal = paidOrders.reduce((sum, order) => sum + order.totalPrice, 0);
   
-  const unpaidOrders = orders.filter(o => !o.isPaid);
+  const unpaidOrders = activeOrders.filter(o => !o.isPaid);
   const unpaidCount = unpaidOrders.length;
   const unpaidTotal = unpaidOrders.reduce((sum, order) => sum + order.totalPrice, 0);
 
@@ -627,7 +631,7 @@ export default function OrderManagementTab() {
       )}
 
       {/* Hidden Render Area for Bulk Download */}
-      <div style={{ position: 'absolute', left: '-9999px', top: 0 }}>
+      <div style={{ position: 'absolute', opacity: 0, pointerEvents: 'none', zIndex: -9999 }}>
         {isDownloading && filteredOrders.map(order => {
              // ... [Keeping existing render logic] ...
              const user = users.find(u => u.phone === order.userId || u.nickname === order.userId);

@@ -44,6 +44,7 @@ model Order {
   trackingNumber    String?
   deliveryStatus    String?
   isExportedToExcel Boolean     @default(false)
+  isArchived        Boolean     @default(false)
 }
 
 model OrderItem {

@@ -1,17 +1,11 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useApp, Order, User } from '../../context/AppContext';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, LabelList } from 'recharts';
 
-interface ArchiveEntry {
-    date: string;
-    orders: Order[];
-}
-
 export default function DashboardTab() {
   const { users, products, orders } = useApp();
-  const [archives, setArchives] = useState<ArchiveEntry[]>([]);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [detailTab, setDetailTab] = useState<'paid' | 'unpaid'>('paid');
   const [timeRange, setTimeRange] = useState<'daily' | 'weekly' | 'monthly' | 'yearly'>('daily');
@@ -49,23 +43,9 @@ export default function DashboardTab() {
 
 
 
-  useEffect(() => {
-      const storedArchives = localStorage.getItem('boramall_archives');
-      if (storedArchives) {
-          setArchives(JSON.parse(storedArchives));
-      }
-  }, []);
-
-  // Merge live DB orders and localStorage mock archives so "Today's" data is visible!
+  // Merge live DB orders (which now include both active and archived orders)
   const combinedArchives = useMemo(() => {
       const map: Record<string, Order[]> = {};
-      
-      archives.forEach(a => {
-          const d = new Date(a.date);
-          const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}T12:00:00Z`;
-          if (!map[key]) map[key] = [];
-          map[key].push(...a.orders);
-      });
       
       orders.forEach(o => {
           const d = new Date(o.createdAt);
@@ -79,7 +59,7 @@ export default function DashboardTab() {
       return Object.entries(map)
           .map(([date, ords]) => ({ date, orders: ords }))
           .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [archives, orders]);
+  }, [orders]);
 
   const globalSearchResults = useMemo(() => {
       if (!globalSearch.trim()) return [];

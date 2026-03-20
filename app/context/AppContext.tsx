@@ -591,19 +591,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setOrders(prev => prev.map(o => o.id === orderId ? { ...o, deliveryStatus: newStatus } : o));
   };
 
-  const archiveOrders = () => {
-     // Save current orders to a separate archive list in localStorage
-     const currentArchives = JSON.parse(localStorage.getItem('boramall_archives') || '[]');
-     const archiveEntry = {
-         date: new Date().toISOString(),
-         orders: orders
-     };
-     localStorage.setItem('boramall_archives', JSON.stringify([...currentArchives, archiveEntry]));
+  const archiveOrders = async () => {
+     try {
+         const response = await fetch('/api/orders/archive', { method: 'POST' });
+         const data = await response.json();
+         if (data.success) {
+             console.log(`${data.count} orders archived successfully to DB.`);
+         } else {
+             console.error("Failed to archive orders:", data.error);
+         }
+     } catch (err) {
+         console.error("Error calling archive API", err);
+     }
   };
 
-  const resetOrders = (archive = true) => {
+  const resetOrders = async (archive = true) => {
     if (archive && orders.length > 0) {
-        archiveOrders();
+        await archiveOrders();
     }
     setOrders([]);
     // Note: We do NOT reset stock here by default, as requested.
