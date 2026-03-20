@@ -143,10 +143,10 @@ export default function InvoiceTemplate({ data, elementId = "invoice-capture", h
           
           {/* Total Price Right Aligned */}
           <div className="flex justify-end items-end mt-4 mb-2 pr-4">
-              <span className="font-extrabold text-gray-800 mr-3 text-lg">총금액</span>
-              <div className="bg-[#ede7f6] px-4 py-1.5 rounded-xl border border-[#d1c4e9] shadow-sm">
-                  <span className="font-black text-2xl text-[#311b92] tracking-tight">
-                      {data.totalPrice.toLocaleString()}<span className="text-xl font-black ml-1 text-[#311b92]">원</span>
+              <span className="font-extrabold text-gray-800 mr-3 text-base">총금액</span>
+              <div className="bg-[#ede7f6] px-3 py-1 rounded-lg border border-[#d1c4e9] shadow-sm">
+                  <span className="font-black text-xl text-[#311b92] tracking-tight">
+                      {data.totalPrice.toLocaleString()}<span className="text-lg font-black ml-1 text-[#311b92]">원</span>
                   </span>
               </div>
           </div>
@@ -166,17 +166,17 @@ export default function InvoiceTemplate({ data, elementId = "invoice-capture", h
                   </p>
               </div>
               
-              <div className="bg-white rounded border border-gray-200 shadow-sm w-[340px] flex flex-col items-center justify-center py-4 px-6 relative">
-                  <div className="font-extrabold text-[18px] text-[#311b92] mb-3 tracking-wider">
+              <div className="bg-white rounded border border-gray-200 shadow-sm w-[300px] flex flex-col items-center justify-center py-3 px-5 relative">
+                  <div className="font-extrabold text-[16px] text-[#311b92] mb-2.5 tracking-wider">
                       입금하실 계좌
                   </div>
-                  <div className="mb-2.5 mt-1">
-                      <img src={cleanSaemaeul} alt="MG새마을금고" className="h-7 object-contain" />
+                  <div className="mb-2 mt-0.5">
+                      <img src={cleanSaemaeul} alt="MG새마을금고" className="h-6 object-contain" />
                   </div>
                   
-                  <div className="mb-2 mt-2 bg-[#f4effa] px-4 py-2 rounded-lg w-full text-center border border-[#e8dff4] shadow-sm">
-                      <span className="text-[15px] font-bold text-gray-600 mr-2 tracking-tight">예금주 :</span>
-                      <span className="font-black text-[#5e2f94] text-[19px] tracking-tight">보라몰(인다민)</span>
+                  <div className="mb-1 mt-1.5 bg-[#f4effa] px-3 py-1.5 rounded-lg w-full text-center border border-[#e8dff4] shadow-sm">
+                      <span className="text-[14px] font-bold text-gray-600 mr-2 tracking-tight">예금주 :</span>
+                      <span className="font-black text-[#5e2f94] text-[17px] tracking-tight">보라몰(인다민)</span>
                   </div>
                   
                   <div className="mt-0.5">
@@ -190,13 +190,7 @@ export default function InvoiceTemplate({ data, elementId = "invoice-capture", h
       </div>
 
       {/* Action Buttons (Not Captured) */}
-      {!hideButtons && (
-         <div className="p-8 pt-0 no-capture print:hidden">
-              <div className="mt-4 text-center text-sm text-gray-400">
-                * 화면을 캡처하거나 인쇄 기능을 이용해주세요. (인쇄 시 배경 그래픽 옵션을 켜주세요)
-              </div>
-          </div>
-      )}
+
       
       <style jsx global>{`
         @media print {
