@@ -16,6 +16,7 @@ model User {
   registeredAt  String
   youtubeHandle String?
   isBlacklisted Boolean  @default(false)
+  updatedAt     String?
   orders        Order[]
 }
 

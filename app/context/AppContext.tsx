@@ -11,6 +11,7 @@ export interface User {
   registeredAt: string;
   youtubeHandle?: string;
   isBlacklisted?: boolean;
+  updatedAt?: string;
 }
 
 export interface Product {
@@ -54,7 +55,7 @@ interface AppContextType {
   orders: Order[];
   
   // User Actions
-  registerUser: (user: User) => boolean;
+  registerUser: (user: User) => { success: boolean; message?: string };
   getUser: (phoneOrNickname: string) => User | undefined;
   getUserByHandle: (handle: string) => User | undefined;
 
@@ -193,12 +194,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // --- Actions ---
 
   const registerUser = (user: User) => {
-    // Now checking duplicate phone instead of nickname
-    if (users.some(u => u.phone === user.phone)) {
-      return false; // Phone already exists
+    // Check if nickname already exists (case-insensitive just in case)
+    const existingNickname = users.find(u => u.nickname.toLowerCase() === user.nickname.toLowerCase());
+    
+    if (existingNickname) {
+      return { success: false, message: `${user.nickname}은(는) 기존에 존재하는 아이디 입니다. 유튜브 페이지에서 @핸들명을 변경 부탁드립니다.` };
     }
+
     setUsers(prev => [...prev, user]);
-    return true;
+    return { success: true };
   };
 
   const getUser = (phoneOrNickname: string) => {
@@ -207,14 +211,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const updateUser = (targetUser: User, updatedUser: User) => {
-    // Check duplication if phone changed
-    if (targetUser.phone !== updatedUser.phone) {
-        if (users.some(u => u.phone === updatedUser.phone && 
-            !(u.nickname === targetUser.nickname && u.registeredAt === targetUser.registeredAt))) {
-            alert("이미 존재하는 전화번호입니다.");
+    // Check duplication if nickname changed
+    if (targetUser.nickname !== updatedUser.nickname) {
+        if (users.some(u => u.nickname.toLowerCase() === updatedUser.nickname.toLowerCase())) {
+            alert(`${updatedUser.nickname}은(는) 이미 존재하는 아이디입니다.`);
             return false;
         }
     }
+
+    updatedUser.updatedAt = new Date().toISOString();
 
     // Cascade update to orders (userId is phone or legacy nickname)
     setOrders(prev => prev.map(o => {
@@ -243,10 +248,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const linkUserHandle = (targetUser: User, handle: string) => {
-      setUsers(prev => prev.map(u => 
-          (u.nickname === targetUser.nickname && u.phone === targetUser.phone && u.registeredAt === targetUser.registeredAt)
-          ? { ...u, youtubeHandle: handle } : u
+      // 1. Transfer any existing orders from the auto-created guest user (handle) to the real targetUser
+      setOrders(prev => prev.map(o => 
+          o.userId === handle ? { ...o, userId: targetUser.nickname } : o
       ));
+
+      // 2. Delete the auto-created guest user if it exists
+      setUsers(prev => {
+          let updatedUsers = prev.filter(u => u.nickname !== handle);
+          // 3. Update the real targetUser's youtubeHandle
+          updatedUsers = updatedUsers.map(u => 
+              (u.nickname === targetUser.nickname && u.phone === targetUser.phone && u.registeredAt === targetUser.registeredAt)
+              ? { ...u, youtubeHandle: handle } : u
+          );
+          return updatedUsers;
+      });
   };
 
   const getUserByHandle = (handle: string) => {

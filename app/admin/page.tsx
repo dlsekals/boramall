@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
+
 import { useApp } from '../context/AppContext';
 import InventoryTab from './components/InventoryTab';
 import OrderEntryTab from './components/OrderEntryTab';
@@ -59,10 +59,7 @@ export default function AdminPage() {
               <div className="hidden lg:flex items-center gap-4 text-xs sm:text-sm font-medium text-gray-600 whitespace-nowrap">
                  <span>활성 상품: <b className="text-green-600">{activeProductsCount}</b></span>
                  <span>대기 주문: <b className="text-red-500">{unpaidOrdersCount}</b></span>
-                 <div className="w-px h-4 bg-gray-300 mx-1"></div>
-                 <Link href="/admin/bot" className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 rounded-lg transition-colors font-bold shadow-sm">
-                   <span className="text-base leading-none translate-y-[-1px]">🤖</span> 유튜브 봇 관리
-                 </Link>
+
               </div>
           </div>
           

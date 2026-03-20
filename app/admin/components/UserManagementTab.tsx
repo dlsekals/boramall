@@ -77,13 +77,13 @@ export default function UserManagementTab() {
             ...formData,
             registeredAt: new Date().toISOString()
         };
-        const success = registerUser(newUserToRegister);
-        if (success) {
+        const result = registerUser(newUserToRegister);
+        if (result.success) {
           setIsAddingMode(false);
           setFormData(null);
           alert('회원이 성공적으로 추가되었습니다.');
         } else {
-            alert('중복된 전화번호 또는 닉네임이 존재합니다.');
+            alert(result.message || '중복된 닉네임이 존재합니다.');
         }
       } else if (editingUser) {
         const success = updateUser(editingUser, formData);

@@ -10,7 +10,7 @@ interface ArchiveEntry {
 }
 
 export default function DashboardTab() {
-  const { users, products } = useApp();
+  const { users, products, orders } = useApp();
   const [archives, setArchives] = useState<ArchiveEntry[]>([]);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [detailTab, setDetailTab] = useState<'paid' | 'unpaid'>('paid');
@@ -47,12 +47,46 @@ export default function DashboardTab() {
   // Global Search State
   const [globalSearch, setGlobalSearch] = useState('');
 
+
+
+  useEffect(() => {
+      const storedArchives = localStorage.getItem('boramall_archives');
+      if (storedArchives) {
+          setArchives(JSON.parse(storedArchives));
+      }
+  }, []);
+
+  // Merge live DB orders and localStorage mock archives so "Today's" data is visible!
+  const combinedArchives = useMemo(() => {
+      const map: Record<string, Order[]> = {};
+      
+      archives.forEach(a => {
+          const d = new Date(a.date);
+          const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}T12:00:00Z`;
+          if (!map[key]) map[key] = [];
+          map[key].push(...a.orders);
+      });
+      
+      orders.forEach(o => {
+          const d = new Date(o.createdAt);
+          const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}T12:00:00Z`;
+          if (!map[key]) map[key] = [];
+          if (!map[key].find(existing => existing.id === o.id)) {
+              map[key].push(o);
+          }
+      });
+      
+      return Object.entries(map)
+          .map(([date, ords]) => ({ date, orders: ords }))
+          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [archives, orders]);
+
   const globalSearchResults = useMemo(() => {
       if (!globalSearch.trim()) return [];
       const term = globalSearch.replace(/-/g, '').toLowerCase();
       const results: { formattedDate: string; rawDate: string; order: Order; user?: User }[] = [];
       
-      archives.forEach(archive => {
+      combinedArchives.forEach(archive => {
           const d = new Date(archive.date);
           const formattedDate = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
           
@@ -72,14 +106,7 @@ export default function DashboardTab() {
       });
       
       return results.sort((a, b) => new Date(b.rawDate).getTime() - new Date(a.rawDate).getTime());
-  }, [archives, globalSearch, users]);
-
-  useEffect(() => {
-      const storedArchives = localStorage.getItem('boramall_archives');
-      if (storedArchives) {
-          setArchives(JSON.parse(storedArchives));
-      }
-  }, []);
+  }, [combinedArchives, globalSearch, users]);
 
   // Helper: Format Week as N월 W주차 (e.g. 3월 1주차)
   const getMonthlyWeekNumber = (d: Date) => {
@@ -94,7 +121,7 @@ export default function DashboardTab() {
   };
 
   const filteredArchives = useMemo(() => {
-      return archives.filter(archive => {
+      return combinedArchives.filter(archive => {
           if (!startDate && !endDate) return true;
           const d = new Date(archive.date);
           const time = d.getTime();
@@ -113,7 +140,7 @@ export default function DashboardTab() {
           
           return time >= sTime && time <= eTime;
       });
-  }, [archives, startDate, endDate]);
+  }, [combinedArchives, startDate, endDate]);
 
   const groupedBuckets = useMemo(() => {
       const map: Record<string, Order[]> = {};
@@ -150,38 +177,52 @@ export default function DashboardTab() {
       let cost = 0;
       let count = 0;
       
-      orders.filter(o => o.isPaid).forEach(order => {
-          revenue += order.totalPrice;
-          count++;
+      let expectedRevenue = 0;
+      let expectedCost = 0;
+      
+      orders.forEach(order => {
+          let orderCost = 0;
           order.items.forEach(item => {
              let itemCost = item.purchasePrice;
              if (itemCost === undefined || itemCost === 0) {
                  const currentProduct = products.find(p => p.name === item.productName);
                  itemCost = currentProduct?.purchasePrice || 0;
              }
-             cost += itemCost * item.quantity;
+             orderCost += itemCost * item.quantity;
           });
+          
+          expectedRevenue += order.totalPrice;
+          expectedCost += orderCost;
+          
+          if (order.isPaid) {
+              revenue += order.totalPrice;
+              cost += orderCost;
+              count++;
+          }
       });
       
       const profit = revenue - cost;
+      const expectedProfit = expectedRevenue - expectedCost;
       const margin = revenue > 0 ? (profit / revenue) * 100 : 0;
-      return { revenue, cost, profit, margin, count };
+      return { revenue, cost, profit, expectedProfit, margin, count };
   }, [products]);
 
   const overallMetrics = useMemo(() => {
       let totalRevenue = 0;
       let totalProfit = 0;
+      let totalExpectedProfit = 0;
       let totalSalesCount = 0;
       
       groupedBuckets.forEach(bucket => {
           const stats = calculateFinancials(bucket.orders);
           totalRevenue += stats.revenue;
           totalProfit += stats.profit;
+          totalExpectedProfit += stats.expectedProfit;
           totalSalesCount += stats.count;
       });
       
       const avgMargin = totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0;
-      return { totalRevenue, totalProfit, totalSalesCount, avgMargin };
+      return { totalRevenue, totalProfit, totalExpectedProfit, totalSalesCount, avgMargin };
   }, [groupedBuckets, calculateFinancials]);
 
   const chartData = useMemo(() => {
@@ -507,8 +548,8 @@ export default function DashboardTab() {
           setEndDate(`${end.getFullYear()}-${String(end.getMonth() + 1).padStart(2, '0')}-${String(end.getDate()).padStart(2, '0')}`);
           setTimeRange('daily');
       } else if (type === 'lastBroadcast') {
-          const sorted = [...archives].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-          const latest = sorted.find(a => a.orders && a.orders.length > 0);
+          // combinedArchives is already sorted desc
+          const latest = combinedArchives.find(a => a.orders && a.orders.length > 0);
           if (latest) {
               const formattedDate = latest.date.substring(0, 10);
               setStartDate(formattedDate);
@@ -586,27 +627,31 @@ export default function DashboardTab() {
         </div>
 
         {/* Metrics Row (Clickable for Chart Toggling) */}
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-6 gap-4">
             <div 
                 onClick={() => toggleChartMetric('revenue')}
                 className={`cursor-pointer transition-all bg-white p-5 rounded-xl shadow-sm border-l-4 border-[#673ab7] flex flex-col justify-between ${activeChartMetrics.includes('revenue') ? 'ring-2 ring-[#673ab7] scale-[1.02]' : 'opacity-70 hover:opacity-100'}`}
             >
-                <h2 className="text-gray-500 text-xs font-bold mb-2">누적 매출액 (기간내)</h2>
-                <p className="text-xl md:text-2xl font-black text-[#673ab7] truncate">{overallMetrics.totalRevenue.toLocaleString()}원</p>
+                <h2 className="text-gray-500 text-[10px] sm:text-xs font-bold mb-2">누적 매출액 (확정)</h2>
+                <p className="text-lg md:text-xl xl:text-2xl font-black text-[#673ab7] truncate">{overallMetrics.totalRevenue.toLocaleString()}원</p>
             </div>
             <div 
                 onClick={() => toggleChartMetric('profit')}
                 className={`cursor-pointer transition-all bg-white p-5 rounded-xl shadow-sm border-l-4 border-green-500 flex flex-col justify-between ${activeChartMetrics.includes('profit') ? 'ring-2 ring-green-500 scale-[1.02]' : 'opacity-70 hover:opacity-100'}`}
             >
-                <h2 className="text-gray-500 text-xs font-bold mb-2">순이익 (기간내)</h2>
-                <p className="text-xl md:text-2xl font-black text-green-600 truncate">{overallMetrics.totalProfit.toLocaleString()}원</p>
+                <h2 className="text-gray-500 text-[10px] sm:text-xs font-bold mb-2">순이익 (확정)</h2>
+                <p className="text-lg md:text-xl xl:text-2xl font-black text-green-600 truncate">{overallMetrics.totalProfit.toLocaleString()}원</p>
+            </div>
+            <div className="bg-white p-5 rounded-xl shadow-sm border-l-4 border-orange-400 flex flex-col justify-between">
+                <h2 className="text-gray-500 text-[10px] sm:text-xs font-bold mb-2 leading-tight">예상 총 이익 <br/><span className="text-[9px] font-normal text-gray-400">(미입금 완판 가정시)</span></h2>
+                <p className="text-lg md:text-xl xl:text-2xl font-black text-orange-500 truncate">{overallMetrics.totalExpectedProfit.toLocaleString()}원</p>
             </div>
             <div 
                 onClick={() => toggleChartMetric('aov')}
                 className={`cursor-pointer transition-all bg-white p-5 rounded-xl shadow-sm border-l-4 border-sky-500 flex flex-col justify-between ${activeChartMetrics.includes('aov') ? 'ring-2 ring-sky-500 scale-[1.02]' : 'opacity-70 hover:opacity-100'}`}
             >
-                <h2 className="text-gray-500 text-xs font-bold mb-2">결제 건당 객단가</h2>
-                <p className="text-xl md:text-2xl font-black text-sky-600 truncate">
+                <h2 className="text-gray-500 text-[10px] sm:text-xs font-bold mb-2">결제 건당 객단가</h2>
+                <p className="text-lg md:text-xl xl:text-2xl font-black text-sky-600 truncate">
                     {overallMetrics.totalSalesCount > 0 ? Math.round(overallMetrics.totalRevenue / overallMetrics.totalSalesCount).toLocaleString() : 0}원
                 </p>
             </div>
@@ -614,12 +659,12 @@ export default function DashboardTab() {
                 onClick={() => toggleChartMetric('margin')}
                 className={`cursor-pointer transition-all bg-white p-5 rounded-xl shadow-sm border-l-4 border-blue-500 flex flex-col justify-between ${activeChartMetrics.includes('margin') ? 'ring-2 ring-blue-500 scale-[1.02]' : 'opacity-70 hover:opacity-100'}`}
             >
-                <h2 className="text-gray-500 text-xs font-bold mb-2">평균 마진율 (수익률)</h2>
-                <p className="text-xl md:text-2xl font-black text-blue-600 truncate">{overallMetrics.avgMargin.toFixed(1)}%</p>
+                <h2 className="text-gray-500 text-[10px] sm:text-xs font-bold mb-2">평균 마진율</h2>
+                <p className="text-lg md:text-xl xl:text-2xl font-black text-blue-600 truncate">{overallMetrics.avgMargin.toFixed(1)}%</p>
             </div>
-            <div className="bg-white p-5 rounded-xl shadow-sm border-l-4 border-gray-400 flex flex-col justify-between col-span-2 lg:col-span-1 opacity-70">
-                <h2 className="text-gray-500 text-xs font-bold mb-2">입금 완료 건수</h2>
-                <p className="text-xl md:text-2xl font-black text-gray-700 truncate">{overallMetrics.totalSalesCount.toLocaleString()}건</p>
+            <div className="bg-white p-5 rounded-xl shadow-sm border-l-4 border-gray-400 flex flex-col justify-between opacity-70">
+                <h2 className="text-gray-500 text-[10px] sm:text-xs font-bold mb-2">입금 완료 건수</h2>
+                <p className="text-lg md:text-xl xl:text-2xl font-black text-gray-700 truncate">{overallMetrics.totalSalesCount.toLocaleString()}건</p>
             </div>
         </div>
 

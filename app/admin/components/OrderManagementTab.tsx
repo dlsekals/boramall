@@ -56,6 +56,36 @@ export default function OrderManagementTab() {
       }
   }
 
+  const handleAddBulkShippingFee = () => {
+      const unpaidOrders = filteredOrders.filter(o => !o.isPaid);
+      if (unpaidOrders.length === 0) {
+          alert('현재 목록에 조건을 만족하는 미입금 주문이 없습니다.');
+          return;
+      }
+      
+      const ordersWithoutShipping = unpaidOrders.filter(o => !o.items.some(item => item.productName === "일괄 택배비"));
+
+      if (ordersWithoutShipping.length === 0) {
+          alert('이미 모든 미입금 주문에 일괄 택배비가 청구되어 있습니다.');
+          return;
+      }
+      
+      if (!confirm(`현재 보고 계신 목록의 미입금 주문 중, 택배비가 청구되지 않은 총 ${ordersWithoutShipping.length}건에 대해 각각 4,000원의 일괄 택배비를 추가하시겠습니까?`)) return;
+
+      ordersWithoutShipping.forEach(order => {
+         const newItems = [...order.items, {
+             productName: "일괄 택배비",
+             price: 4000,
+             quantity: 1,
+             purchasePrice: 0,
+             isConsignment: false
+         }];
+         updateOrder(order.id, newItems);
+      });
+      
+      alert(`${ordersWithoutShipping.length}건의 주문에 일괄 택배비 4,000원이 추가되었습니다.`);
+  };
+
   const handleBulkDownload = async () => {
     const ordersToDownload = downloadFilter === 'paid' 
         ? filteredOrders.filter(o => o.isPaid) 
@@ -374,6 +404,12 @@ export default function OrderManagementTab() {
         {/* Right Controls: Action Buttons */}
         <div className="flex flex-wrap justify-start xl:justify-end gap-2 w-full xl:w-auto">
             <button 
+                onClick={handleAddBulkShippingFee}
+                className="bg-indigo-100 text-indigo-700 font-bold px-3 py-2 sm:px-4 rounded hover:bg-indigo-200 border border-indigo-200 shadow-sm flex items-center justify-center gap-1 sm:gap-2 text-sm sm:text-base flex-1 sm:flex-none"
+            >
+                💸 일괄 택배비
+            </button>
+            <button 
                 onClick={() => {
                     const result = mergeDuplicateOrders();
                     alert(result.message);
@@ -594,8 +630,8 @@ export default function OrderManagementTab() {
       <div style={{ position: 'absolute', left: '-9999px', top: 0 }}>
         {isDownloading && filteredOrders.map(order => {
              // ... [Keeping existing render logic] ...
-            const user = users.find(u => u.nickname === order.userId);
-            if (!user) return null;
+             const user = users.find(u => u.phone === order.userId || u.nickname === order.userId);
+             if (!user) return null;
             
             const data: InvoiceData = {
                 customerName: user.name,

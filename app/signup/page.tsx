@@ -11,6 +11,7 @@ declare global {
         id: {
           initialize: (config: Record<string, unknown>) => void;
           renderButton: (element: HTMLElement, config: Record<string, unknown>) => void;
+          prompt: (callback?: (notification: { isNotDisplayed: () => boolean; isSkippedMoment: () => boolean }) => void) => void;
         };
       };
     };
@@ -72,7 +73,11 @@ export default function SignupPage() {
         window.google.accounts.id.initialize({
           client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '',
           callback: handleGoogleResponse,
+          context: 'signup', // For One-Tap optimization
+          ux_mode: 'popup',
         });
+        
+        // Render the fallback button
         const btnEl = document.getElementById('google-signin-btn');
         if (btnEl) {
           window.google.accounts.id.renderButton(btnEl, {
@@ -83,6 +88,13 @@ export default function SignupPage() {
             locale: 'ko',
           });
         }
+        
+        // Show the seamless One-Tap UI
+        window.google.accounts.id.prompt((notification) => {
+            if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+                console.log("One-Tap skipped/not displayed, fallback to button");
+            }
+        });
       }
     };
     document.body.appendChild(script);
@@ -140,7 +152,7 @@ export default function SignupPage() {
     // Auto-formatting checking for '@'
     const finalNickname = formData.nickname.startsWith('@') ? formData.nickname : `@${formData.nickname}`;
 
-    const success = registerUser({
+    const result = registerUser({
       nickname: finalNickname.trim(),
       name: formData.name.trim(),
       phone: formData.phone.trim(),
@@ -149,11 +161,11 @@ export default function SignupPage() {
       youtubeHandle: googleUser ? finalNickname.trim() : undefined,
     });
 
-    if (success) {
+    if (result.success) {
       alert('회원가입이 완료되었습니다!');
       router.push('/');
     } else {
-      setError('이미 존재하는 닉네임입니다. 다른 닉네임을 사용해주세요.');
+      setError(result.message || '이미 존재하는 닉네임입니다. 다른 닉네임을 사용해주세요.');
     }
   };
 

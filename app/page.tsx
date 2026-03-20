@@ -26,6 +26,10 @@ function LoginContent() {
   const [agreedPrivacy, setAgreedPrivacy] = useState(false);
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
 
+  // Google Session logic removed by user request (prioritizing manual YouTube ID)
+
+  const [hasClickedFindId, setHasClickedFindId] = useState(false);
+
   // Back button handling - confirmed to leave signup
   useEffect(() => {
     if (!signupSuccessName) {
@@ -136,18 +140,18 @@ function LoginContent() {
 
       const finalNickname = formData.nickname.startsWith('@') ? formData.nickname : `@${formData.nickname}`;
 
-      const success = registerUser({
+      const result = registerUser({
         nickname: finalNickname.trim(),
         name: formData.name.trim(),
         phone: formData.phone.trim(),
         address: fullAddress,
-        registeredAt: new Date().toISOString()
+        registeredAt: new Date().toISOString(),
       });
       
-      if (success) {
+      if (result.success) {
         setSignupSuccessName(formData.name);
       } else {
-        setError('이미 등록된 전화번호입니다.');
+        setError(result.message || '회원가입에 실패했습니다.');
       }
     }
   };
@@ -421,24 +425,84 @@ function LoginContent() {
             </div>
           ) : (
             <>
-              {/* Admin Login Button */}
+              {/* Form part begins directly */}
           <form onSubmit={handleSubmit} className="space-y-1.5 sm:space-y-2.5">
-            {/* Form part begins directly */}
-
+            {!isLogin && (
+                <div className="flex items-start gap-1.5 sm:gap-2 mb-2">
+                  <label className="w-[65px] shrink-0 flex items-center justify-center bg-[#8b5cf6] py-2 sm:py-3 rounded-md text-[13px] font-bold text-white tracking-tight shadow-sm">유튜브<br/>아이디</label>
+                  <div className="flex-1 min-w-0 flex flex-col gap-0.5 sm:gap-1">
+                    <div className="flex items-center justify-between w-full">
+                      <div 
+                        className={`flex items-center w-[60%] sm:w-[65%] border rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-[#8b5cf6] transition-colors shadow-inner ${emptyFields.includes('nickname') ? 'border-red-500 bg-red-50' : 'border-gray-200 bg-white/90'} ${!hasClickedFindId ? 'opacity-80' : ''}`}
+                        onClick={() => {
+                            if (!hasClickedFindId) {
+                                alert("오른쪽 빨간색 [아이디 찾기] 버튼을 먼저 눌러서 본인의 정확한 유튜브 아이디를 확인해주세요!");
+                            }
+                        }}
+                      >
+                        <span className="pl-2 sm:pl-3 pr-0.5 sm:pr-1 text-gray-400 font-bold select-none cursor-default py-1.5 sm:py-2.5 text-[11px] sm:text-base shrink-0">@</span>
+                        <input 
+                          name="nickname"
+                          type="text" 
+                          value={formData.nickname.replace(/^@/, '')}
+                          onChange={(e) => {
+                            if (!hasClickedFindId) {
+                                alert("먼저 [아이디 찾기] 버튼을 눌러 정확한 아이디를 확인해주세요!");
+                                return;
+                            }
+                            setFormData({ ...formData, nickname: e.target.value });
+                            if (emptyFields.includes('nickname')) {
+                              setEmptyFields(prev => prev.filter(f => f !== 'nickname'));
+                            }
+                          }}
+                          readOnly={!hasClickedFindId}
+                          placeholder="아이디 찾기 버튼 클릭 필수"
+                          className="w-full min-w-0 pr-1.5 sm:pr-2.5 py-1.5 sm:p-2.5 focus:outline-none text-[11px] sm:text-base tracking-tight bg-transparent"
+                        />
+                      </div>
+                      <button 
+                        type="button" 
+                        onClick={() => {
+                            setHasClickedFindId(true);
+                            const targetUrl = 'https://youtube.com/handle';
+                            const isKakao = /KAKAOTALK/i.test(navigator.userAgent);
+                            if (isKakao) {
+                                location.href = `kakaotalk://web/openExternal?url=${encodeURIComponent(targetUrl)}`;
+                            } else {
+                                window.open(targetUrl, '_blank');
+                            }
+                        }}
+                        className="w-[38%] sm:w-[33%] py-1.5 sm:py-2 bg-gradient-to-b from-[#ff4d4d] to-[#cc0000] text-white rounded-xl font-bold text-[10.5px] sm:text-xs tracking-tighter sm:tracking-normal shadow-[0_3px_0_#990000,0_4px_4px_rgba(0,0,0,0.2)] active:shadow-[0_0px_0_#990000,0_1px_2px_rgba(0,0,0,0.3)] active:translate-y-[3px] transition-all flex items-center justify-center gap-0.5 sm:gap-1.5 border border-[#cc0000]"
+                      >
+                        <svg viewBox="0 0 24 24" fill="currentColor" className="w-[12px] h-[12px] sm:w-[14px] sm:h-[14px] shrink-0">
+                          <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                        </svg>
+                        <span className="truncate">아이디 찾기</span>
+                      </button>
+                    </div>
+                    <div className="flex flex-col gap-0.5 sm:gap-1 mt-1 bg-purple-50 p-2 rounded-lg border border-purple-100">
+                      <p className="text-[11px] sm:text-xs text-[#8b5cf6] font-bold break-keep leading-[1.4] tracking-tight">
+                        💡 아이디 찾기 버튼을 먼저 누르고 @옆에 써있는 문자를 정확히 입력해 주셔야 주문 집계가 가능합니다.<br/>
+                        <span className="text-red-500 font-black mt-0.5 inline-block">예) @다다-h4k</span>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+            )}
             <div className="flex items-center gap-1.5 sm:gap-2">
-              <label className="w-[50px] shrink-0 flex items-center justify-center bg-[#8b5cf6] py-2 sm:py-3 rounded-md text-sm font-bold text-white tracking-tight shadow-sm">이름</label>
+              <label className="w-[65px] shrink-0 flex items-center justify-center bg-[#8b5cf6] py-2 sm:py-3 rounded-md text-[13px] font-bold text-white tracking-tight shadow-sm">성함</label>
               <input 
                 name="name"
                 type="text" 
                 value={formData.name}
                 onChange={handleChange}
-                placeholder="이름 입력"
+                placeholder="예) 홍길동"
                 className={`flex-1 min-w-0 px-2.5 py-1.5 sm:p-2.5 border rounded-xl focus:outline-none focus:ring-2 focus:ring-[#8b5cf6] text-sm sm:text-base transition-colors shadow-inner ${emptyFields.includes('name') ? 'border-red-500 bg-red-50' : 'border-gray-200 bg-white/80'}`}
               />
             </div>
             
             <div className="flex items-center gap-1.5 sm:gap-2">
-              <label className="w-[50px] shrink-0 flex items-center justify-center bg-[#8b5cf6] py-2 sm:py-3 rounded-md text-sm font-bold text-white tracking-tight shadow-sm">연락처</label>
+              <label className="w-[65px] shrink-0 flex items-center justify-center bg-[#8b5cf6] py-2 sm:py-3 rounded-md text-[13px] font-bold text-white tracking-tight shadow-sm">연락처</label>
               <input 
                 name="phone"
                 type="tel" 
@@ -449,47 +513,7 @@ function LoginContent() {
                 className={`flex-1 min-w-0 px-2.5 py-1.5 sm:p-2.5 border rounded-xl focus:outline-none focus:ring-2 focus:ring-[#8b5cf6] text-sm sm:text-base transition-colors shadow-inner ${emptyFields.includes('phone') ? 'border-red-500 bg-red-50' : 'border-gray-200 bg-white/80'}`}
               />
             </div>
-            
-            {!isLogin && (
-                <>
-                <div className="flex items-start gap-1.5 sm:gap-2 pt-0.5">
-                  <label className="w-[50px] shrink-0 flex items-center justify-center bg-[#8b5cf6] py-2 sm:py-3 rounded-md text-sm font-bold text-white tracking-tight shadow-sm">닉네임</label>
-                  <div className="flex-1 min-w-0 flex flex-col gap-0.5 sm:gap-1">
-                    <div className="flex items-center justify-between w-full">
-                      <div className={`flex items-center w-[60%] sm:w-[65%] border rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-[#8b5cf6] transition-colors shadow-inner ${emptyFields.includes('nickname') ? 'border-red-500 bg-red-50' : 'border-gray-200 bg-white/90'}`}>
-                        <span className="pl-2 sm:pl-3 pr-0.5 sm:pr-1 text-gray-400 font-bold select-none cursor-default py-1.5 sm:py-2.5 text-[11px] sm:text-base shrink-0">@</span>
-                        <input 
-                          name="nickname"
-                          type="text" 
-                          value={formData.nickname.replace(/^@/, '')}
-                          onChange={(e) => {
-                            setFormData({ ...formData, nickname: e.target.value });
-                            if (emptyFields.includes('nickname')) {
-                              setEmptyFields(prev => prev.filter(f => f !== 'nickname'));
-                            }
-                          }}
-                          placeholder="유튜브 닉네임"
-                          className="w-full min-w-0 pr-1.5 sm:pr-2.5 py-1.5 sm:p-2.5 focus:outline-none text-[11px] sm:text-base tracking-tight bg-transparent"
-                        />
-                      </div>
-                      <button 
-                        type="button" 
-                        onClick={() => window.open('https://youtube.com/handle', '_blank')}
-                        className="w-[38%] sm:w-[33%] py-1.5 sm:py-2 bg-gradient-to-b from-[#ff4d4d] to-[#cc0000] text-white rounded-xl font-bold text-[10.5px] sm:text-xs tracking-tighter sm:tracking-normal shadow-[0_3px_0_#990000,0_4px_4px_rgba(0,0,0,0.2)] active:shadow-[0_0px_0_#990000,0_1px_2px_rgba(0,0,0,0.3)] active:translate-y-[3px] transition-all flex items-center justify-center gap-0.5 sm:gap-1.5 border border-[#cc0000]"
-                      >
-                        <svg viewBox="0 0 24 24" fill="currentColor" className="w-[12px] h-[12px] sm:w-[14px] sm:h-[14px] shrink-0">
-                          <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
-                        </svg>
-                        <span className="truncate">닉네임 찾기</span>
-                      </button>
-                    </div>
-                    <div className="flex flex-col gap-0.5 sm:gap-1 mt-1">
-                      <p className="text-[10px] sm:text-xs text-[#8b5cf6] font-bold break-keep leading-[1.3] tracking-tight">
-                        💡 유튜브 닉네임을 정확히 기재해야 주문이 원활하게 적용됩니다. <span className="text-red-500 whitespace-nowrap">예) @다다-h4k</span>
-                      </p>
-                    </div>
-                  </div>
-                </div>
+
                 
                 <div className="flex items-start gap-1.5 sm:gap-2 mt-0.5 sm:mt-1 w-full">
                   <label className="w-[50px] shrink-0 flex items-center justify-center bg-[#8b5cf6] py-2 sm:py-3 rounded-md text-sm font-bold text-white tracking-tight shadow-sm">주소</label>
@@ -534,8 +558,6 @@ function LoginContent() {
                       />
                   </div>
                 </div>
-                </>
-            )}
 
             {error && <p className="text-red-500 text-sm font-medium">{error}</p>}
 
