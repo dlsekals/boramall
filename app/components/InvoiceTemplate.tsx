@@ -171,7 +171,7 @@ export default function InvoiceTemplate({ data, elementId = "invoice-capture", h
                       입금하실 계좌
                   </div>
                   <div className="mb-2 mt-0.5">
-                      <img src={cleanSaemaeul} alt="MG새마을금고" className="h-6 object-contain" />
+                      <img src={cleanSaemaeul} alt="MG새마을금고" className="h-8 object-contain" />
                   </div>
                   
                   <div className="mb-1 mt-1.5 bg-[#f4effa] px-3 py-1.5 rounded-lg w-full text-center border border-[#e8dff4] shadow-sm">
