@@ -2,7 +2,6 @@
 
 import { boramallLogo, saemaeulLogo } from './logos';
 import { useEffect, useState } from 'react';
-import html2canvas from 'html2canvas';
 
 export interface InvoiceData {
   customerName: string;
@@ -33,7 +32,6 @@ export default function InvoiceTemplate({ data, elementId = "invoice-capture", h
   useEffect(() => {
     const processImage = (base64Url: string, setFn: (url: string) => void) => {
       const img = new Image();
-      img.crossOrigin = "Anonymous";
       img.onload = () => {
         const canvas = document.createElement("canvas");
         canvas.width = img.width;
@@ -67,8 +65,8 @@ export default function InvoiceTemplate({ data, elementId = "invoice-capture", h
     if (buttonContainer) buttonContainer.style.display = 'none';
 
     try {
-      const canvas = await html2canvas(element, { scale: 2, useCORS: true, allowTaint: true, backgroundColor: '#ffffff' });
-      const dataUrl = canvas.toDataURL('image/png');
+      const { toPng } = await import('html-to-image');
+      const dataUrl = await toPng(element, { cacheBust: true, pixelRatio: 2, backgroundColor: '#ffffff' });
       
       const link = document.createElement("a");
       link.href = dataUrl;
