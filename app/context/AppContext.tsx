@@ -46,6 +46,7 @@ export interface Order {
   trackingNumber?: string;
   deliveryStatus?: '배송준비중' | '배송중' | '배송완료' | '취소완료' | '반품요청' | '반품완료' | '교환요청' | '교환완료';
   isExportedToExcel?: boolean; // 롯데택배 엑셀로 추출되었는지 여부
+  isArchived?: boolean;
 }
 
 
