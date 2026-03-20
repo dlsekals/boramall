@@ -59,14 +59,13 @@ export default function InvoiceTemplate({ data, elementId = "invoice-capture", h
   const handleDownloadImage = async () => {
     const element = document.getElementById(elementId);
     if (element) {
+      const { toPng } = await import('html-to-image');
+      
       const buttonContainer = element.querySelector('.no-capture') as HTMLElement;
       if (buttonContainer) buttonContainer.style.visibility = 'hidden';
 
       try {
-        const html2canvas = (await import('html2canvas')).default;
-        const canvas = await html2canvas(element, { scale: 2, useCORS: true, logging: false, backgroundColor: '#ffffff' });
-        const dataUrl = canvas.toDataURL('image/png');
-        
+        const dataUrl = await toPng(element, { cacheBust: true, pixelRatio: 2, backgroundColor: '#ffffff' });
         const link = document.createElement("a");
         link.href = dataUrl;
         link.download = `Invoice_${data.customerName}.png`;
@@ -100,9 +99,9 @@ export default function InvoiceTemplate({ data, elementId = "invoice-capture", h
             {/* Logo: base64 properly background-stripped natively */}
             <img src={cleanLogo} alt="보라몰" className="h-28 lg:h-32 object-contain transform scale-110 origin-left" />
         </div>
-        <div className="flex-1 flex justify-end items-center pr-10 lg:pr-24 gap-2">
-            <div className={`${themeColor} text-white px-3 py-1 rounded text-[10px] font-bold tracking-widest`}>날짜</div>
-            <div className="font-bold text-gray-700 text-sm tracking-widest bg-gray-50 px-4 py-1 rounded">{data.date}</div>
+        <div className="flex-1 flex justify-end items-center gap-2 relative right-4 lg:right-10">
+            <div className={`${themeColor} text-white px-3 py-1 rounded text-[10px] font-bold tracking-widest whitespace-nowrap`}>날짜</div>
+            <div className="font-bold text-gray-700 text-sm tracking-widest bg-gray-50 px-4 py-1 rounded whitespace-nowrap">{data.date}</div>
         </div>
         <div className="flex-1 text-right">
             <h2 className={`text-3xl font-black ${textColor} opacity-40 uppercase tracking-widest`}>주문내역</h2>
