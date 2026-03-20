@@ -1,5 +1,8 @@
+"use client";
+
 import { boramallLogo, saemaeulLogo } from './logos';
 import { useEffect, useState } from 'react';
+import html2canvas from 'html2canvas';
 
 export interface InvoiceData {
   customerName: string;
@@ -58,24 +61,24 @@ export default function InvoiceTemplate({ data, elementId = "invoice-capture", h
 
   const handleDownloadImage = async () => {
     const element = document.getElementById(elementId);
-    if (element) {
-      const { toPng } = await import('html-to-image');
-      
-      const buttonContainer = element.querySelector('.no-capture') as HTMLElement;
-      if (buttonContainer) buttonContainer.style.visibility = 'hidden';
+    if (!element) return;
+    
+    const buttonContainer = element.querySelector('.no-capture') as HTMLElement;
+    if (buttonContainer) buttonContainer.style.display = 'none';
 
-      try {
-        const dataUrl = await toPng(element, { cacheBust: true, pixelRatio: 2, backgroundColor: '#ffffff' });
-        const link = document.createElement("a");
-        link.href = dataUrl;
-        link.download = `Invoice_${data.customerName}.png`;
-        link.click();
-      } catch (error) {
-        console.error("Failed to generate image", error);
-        alert("이미지 저장 중 오류가 발생했습니다.");
-      } finally {
-        if (buttonContainer) buttonContainer.style.visibility = 'visible';
-      }
+    try {
+      const canvas = await html2canvas(element, { scale: 2, useCORS: true, allowTaint: true, backgroundColor: '#ffffff' });
+      const dataUrl = canvas.toDataURL('image/png');
+      
+      const link = document.createElement("a");
+      link.href = dataUrl;
+      link.download = `Invoice_${data.customerName}.png`;
+      link.click();
+    } catch (error) {
+      console.error("Failed to generate image", error);
+      alert("이미지 저장 중 오류가 발생했습니다.");
+    } finally {
+      if (buttonContainer) buttonContainer.style.display = '';
     }
   };
 
@@ -94,16 +97,16 @@ export default function InvoiceTemplate({ data, elementId = "invoice-capture", h
       )}
 
       {/* Header */}
-      <div className="px-8 pt-6 pb-2 flex justify-between items-center border-b-2 border-transparent">
+      <div className="px-8 pt-6 pb-2 flex justify-between items-start border-b-2 border-transparent">
         <div className="flex-1 flex items-center pt-2">
             {/* Logo: base64 properly background-stripped natively */}
             <img src={cleanLogo} alt="보라몰" className="h-28 lg:h-32 object-contain transform scale-110 origin-left" />
         </div>
-        <div className="flex-1 flex justify-end items-center gap-2 relative right-4 lg:right-10">
-            <div className={`${themeColor} text-white px-3 py-1 rounded text-[10px] font-bold tracking-widest whitespace-nowrap`}>날짜</div>
-            <div className="font-bold text-gray-700 text-sm tracking-widest bg-gray-50 px-4 py-1 rounded whitespace-nowrap">{data.date}</div>
-        </div>
-        <div className="flex-1 text-right">
+        <div className="flex-1 flex flex-col items-end justify-start gap-2 pt-2">
+            <div className="flex items-center gap-2 mb-2 pr-2">
+                <div className={`${themeColor} text-white px-3 py-1 rounded text-[10px] font-bold tracking-widest whitespace-nowrap`}>날짜</div>
+                <div className="font-bold text-gray-700 text-sm tracking-widest bg-gray-50 px-4 py-1 rounded whitespace-nowrap">{data.date}</div>
+            </div>
             <h2 className={`text-3xl font-black ${textColor} opacity-40 uppercase tracking-widest`}>주문내역</h2>
         </div>
       </div>
