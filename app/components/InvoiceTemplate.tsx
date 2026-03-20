@@ -1,6 +1,4 @@
-"use client";
-
-
+import { boramallLogo, saemaeulLogo } from './logos';
 
 export interface InvoiceData {
   customerName: string;
@@ -64,10 +62,10 @@ export default function InvoiceTemplate({ data, elementId = "invoice-capture", h
       )}
 
       {/* Header */}
-      <div className="px-8 pt-6 pb-4 flex justify-between items-center border-b-2 border-transparent">
+      <div className="px-8 pt-6 pb-2 flex justify-between items-center border-b-2 border-transparent">
         <div className="flex-1 flex items-center pt-2">
-            {/* Logo */}
-            <img src="/boramall_logo.png" alt="보라몰" className="h-20 lg:h-24 object-contain mix-blend-multiply" />
+            {/* Logo: Base64 + Multiply blend mode + Brightness/Contrast to completely erase off-white gray box */}
+            <img src={boramallLogo} alt="보라몰" className="h-28 lg:h-32 object-contain mix-blend-multiply brightness-110 contrast-125 transform scale-110 origin-left" />
         </div>
         <div className="flex-1 flex justify-center items-center gap-2">
             <div className={`${themeColor} text-white px-3 py-1 rounded text-[10px] font-bold tracking-widest`}>날짜</div>
@@ -101,28 +99,28 @@ export default function InvoiceTemplate({ data, elementId = "invoice-capture", h
 
       {/* Table */}
       <div className="px-8 pb-3">
-          <table className="w-full text-left border-collapse table-fixed mt-2">
+          <table className="w-full text-left border-collapse table-fixed mt-1">
             <thead>
               <tr className={`${themeColor} text-white`}>
-                <th className="py-2 px-4 rounded-tl-md font-bold text-[12px] w-[50%]">물품</th>
-                <th className="py-2 px-4 text-center font-bold text-[12px] whitespace-nowrap w-[15%]">수량</th>
-                <th className="py-2 px-4 text-center font-bold text-[12px] whitespace-nowrap w-[15%]">단가</th>
-                <th className="py-2 px-4 rounded-tr-md text-center font-bold text-[12px] whitespace-nowrap w-[20%]">합계</th>
+                <th className="py-1 px-4 rounded-tl-md font-bold text-[11px] w-[50%]">물품</th>
+                <th className="py-1 px-4 text-center font-bold text-[11px] whitespace-nowrap w-[15%]">수량</th>
+                <th className="py-1 px-4 text-center font-bold text-[11px] whitespace-nowrap w-[15%]">단가</th>
+                <th className="py-1 px-4 rounded-tr-md text-center font-bold text-[11px] whitespace-nowrap w-[20%]">합계</th>
               </tr>
             </thead>
             <tbody>
               {data.items.map((item, index) => (
                 <tr key={index} className="border-b border-gray-100 last:border-0">
-                  <td className="py-2 px-4 font-black text-gray-900 text-[12px] break-words">
+                  <td className="py-1 px-4 font-black text-gray-900 text-[11px] break-words leading-tight">
                     {item.name}
                   </td>
-                  <td className="py-2 px-4 text-center font-bold text-gray-800 whitespace-nowrap text-[12px]">
+                  <td className="py-1 px-4 text-center font-bold text-gray-800 whitespace-nowrap text-[11px]">
                     {item.quantity}
                   </td>
-                  <td className="py-2 px-4 text-center font-bold text-gray-800 whitespace-nowrap text-[12px]">
+                  <td className="py-1 px-4 text-center font-bold text-gray-800 whitespace-nowrap text-[11px]">
                     {item.price.toLocaleString()}
                   </td>
-                  <td className="py-2 px-4 text-center font-bold text-gray-800 whitespace-nowrap text-[12px]">
+                  <td className="py-1 px-4 text-center font-bold text-gray-800 whitespace-nowrap text-[11px]">
                     {(item.price * item.quantity).toLocaleString()}
                   </td>
                 </tr>
@@ -131,7 +129,7 @@ export default function InvoiceTemplate({ data, elementId = "invoice-capture", h
           </table>
           
           {/* Total Price Right Aligned */}
-          <div className="flex justify-end items-end mt-6 mb-4 pr-4">
+          <div className="flex justify-end items-end mt-4 mb-2 pr-4">
               <span className="font-extrabold text-gray-800 mr-3 text-lg">총금액</span>
               <span className="font-black text-3xl text-gray-900 tracking-tight">
                   {data.totalPrice.toLocaleString()}<span className="text-2xl font-black ml-1 text-gray-900">원</span>
@@ -155,7 +153,7 @@ export default function InvoiceTemplate({ data, elementId = "invoice-capture", h
               
               <div className="bg-white rounded border border-gray-200 shadow-sm w-[340px] flex flex-col items-center justify-center py-4 px-6 relative">
                   <div className="mb-2.5">
-                      <img src="/saemaeul_logo.png" alt="MG새마을금고" className="h-7 object-contain mix-blend-multiply" />
+                      <img src={saemaeulLogo} alt="MG새마을금고" className="h-7 object-contain mix-blend-multiply" />
                   </div>
                   
                   <div className="mb-1.5 mt-2">
