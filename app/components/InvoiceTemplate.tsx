@@ -64,10 +64,10 @@ export default function InvoiceTemplate({ data, elementId = "invoice-capture", h
       )}
 
       {/* Header */}
-      <div className="px-8 pt-10 pb-6 flex justify-between items-center border-b-2 border-transparent">
-        <div className="flex-1 flex items-center">
+      <div className="px-8 pt-6 pb-4 flex justify-between items-center border-b-2 border-transparent">
+        <div className="flex-1 flex items-center pt-2">
             {/* Logo */}
-            <img src="/boramall_logo.png" alt="보라몰" className="h-14 lg:h-16 object-contain" />
+            <img src="/boramall_logo.png" alt="보라몰" className="h-20 lg:h-24 object-contain mix-blend-multiply" />
         </div>
         <div className="flex-1 flex justify-center items-center gap-2">
             <div className={`${themeColor} text-white px-3 py-1 rounded text-[10px] font-bold tracking-widest`}>날짜</div>
@@ -79,50 +79,50 @@ export default function InvoiceTemplate({ data, elementId = "invoice-capture", h
       </div>
 
       {/* Addresses */}
-      <div className="grid grid-cols-2 gap-12 px-12 pb-6 pt-2">
+      <div className="grid grid-cols-2 gap-12 px-12 pb-4 pt-1">
           <div>
-              <h3 className={`font-bold text-sm mb-2 tracking-wider ${textColor}`}>판매자</h3>
-              <div className={`h-0.5 w-full bg-[#311b92] opacity-20 mb-3`}></div>
-              <p className="font-black text-gray-800 text-sm mb-1">보라몰</p>
-              <p className="text-gray-400 text-[11px] font-medium tracking-tight">파주시 월롱면 도감로172번길 44-10</p>
-              <p className="text-gray-400 text-[11px] font-medium tracking-tight">010-6269-9612</p>
+              <h3 className={`font-bold text-[13px] mb-1.5 tracking-wider ${textColor}`}>판매자</h3>
+              <div className={`h-0.5 w-full bg-[#311b92] opacity-20 mb-2`}></div>
+              <p className="font-black text-gray-800 text-[13px] mb-1">보라몰</p>
+              <p className="text-gray-400 text-[10px] font-medium tracking-tight">파주시 월롱면 도감로172번길 44-10</p>
+              <p className="text-gray-400 text-[10px] font-medium tracking-tight">010-6269-9612</p>
           </div>
           <div>
-              <h3 className={`font-bold text-sm mb-2 tracking-wider ${textColor}`}>구매자</h3>
-              <div className={`h-0.5 w-full bg-[#311b92] opacity-20 mb-3`}></div>
-              <p className="font-black text-gray-800 text-sm mb-1">{data.customerName} 님</p>
+              <h3 className={`font-bold text-[13px] mb-1.5 tracking-wider ${textColor}`}>구매자</h3>
+              <div className={`h-0.5 w-full bg-[#311b92] opacity-20 mb-2`}></div>
+              <p className="font-black text-gray-800 text-[13px] mb-1">{data.customerName} 님</p>
               {data.address ? (
-                  <p className="text-gray-400 text-[11px] font-medium tracking-tight break-keep">{data.address.replace(/\\n/g, ' ')}</p>
+                  <p className="text-gray-400 text-[10px] font-medium tracking-tight break-keep">{data.address.replace(/\\n/g, ' ')}</p>
               ) : (
-                  <p className="text-gray-300 text-[11px] font-medium tracking-tight">(주소 정보 없음)</p>
+                  <p className="text-gray-300 text-[10px] font-medium tracking-tight">(주소 정보 없음)</p>
               )}
           </div>
       </div>
 
       {/* Table */}
-      <div className="px-8 pb-4">
-          <table className="w-full text-left border-collapse table-fixed">
+      <div className="px-8 pb-3">
+          <table className="w-full text-left border-collapse table-fixed mt-2">
             <thead>
               <tr className={`${themeColor} text-white`}>
-                <th className="py-2.5 px-4 rounded-tl-md font-bold text-[13px] w-[50%]">물품</th>
-                <th className="py-2.5 px-4 text-center font-bold text-[13px] whitespace-nowrap w-[15%]">수량</th>
-                <th className="py-2.5 px-4 text-center font-bold text-[13px] whitespace-nowrap w-[15%]">단가</th>
-                <th className="py-2.5 px-4 rounded-tr-md text-center font-bold text-[13px] whitespace-nowrap w-[20%]">합계</th>
+                <th className="py-2 px-4 rounded-tl-md font-bold text-[12px] w-[50%]">물품</th>
+                <th className="py-2 px-4 text-center font-bold text-[12px] whitespace-nowrap w-[15%]">수량</th>
+                <th className="py-2 px-4 text-center font-bold text-[12px] whitespace-nowrap w-[15%]">단가</th>
+                <th className="py-2 px-4 rounded-tr-md text-center font-bold text-[12px] whitespace-nowrap w-[20%]">합계</th>
               </tr>
             </thead>
             <tbody>
               {data.items.map((item, index) => (
                 <tr key={index} className="border-b border-gray-100 last:border-0">
-                  <td className="py-3 px-4 font-black text-gray-900 text-[13px] break-words">
+                  <td className="py-2 px-4 font-black text-gray-900 text-[12px] break-words">
                     {item.name}
                   </td>
-                  <td className="py-3 px-4 text-center font-bold text-gray-800 whitespace-nowrap text-[13px]">
+                  <td className="py-2 px-4 text-center font-bold text-gray-800 whitespace-nowrap text-[12px]">
                     {item.quantity}
                   </td>
-                  <td className="py-3 px-4 text-center font-bold text-gray-800 whitespace-nowrap text-[13px]">
+                  <td className="py-2 px-4 text-center font-bold text-gray-800 whitespace-nowrap text-[12px]">
                     {item.price.toLocaleString()}
                   </td>
-                  <td className="py-3 px-4 text-center font-bold text-gray-800 whitespace-nowrap text-[13px]">
+                  <td className="py-2 px-4 text-center font-bold text-gray-800 whitespace-nowrap text-[12px]">
                     {(item.price * item.quantity).toLocaleString()}
                   </td>
                 </tr>
@@ -131,7 +131,7 @@ export default function InvoiceTemplate({ data, elementId = "invoice-capture", h
           </table>
           
           {/* Total Price Right Aligned */}
-          <div className="flex justify-end items-end mt-12 mb-8 pr-4">
+          <div className="flex justify-end items-end mt-6 mb-4 pr-4">
               <span className="font-extrabold text-gray-800 mr-3 text-lg">총금액</span>
               <span className="font-black text-3xl text-gray-900 tracking-tight">
                   {data.totalPrice.toLocaleString()}<span className="text-2xl font-black ml-1 text-gray-900">원</span>
@@ -143,32 +143,32 @@ export default function InvoiceTemplate({ data, elementId = "invoice-capture", h
       <div className="flex-1"></div>
 
       {/* Footer / Payment Methods */}
-      <div className="bg-[#f9f9fb] w-full pt-10 pb-8 px-12 border-t border-gray-100">
+      <div className="bg-[#f9f9fb] w-full pt-8 pb-6 px-12 border-t border-gray-100 break-inside-avoid shadow-inner mt-auto">
           <div className="flex items-start justify-between">
               <div className="text-left flex-1 pr-4 pt-2">
-                  <p className="font-extrabold text-gray-600 text-lg mb-2">무통장 입금 계좌 안내</p>
-                  <p className="text-[13px] font-bold text-[#ff5252] break-keep leading-snug">
+                  <p className="font-extrabold text-gray-700 text-[17px] mb-2">무통장 입금 계좌 안내</p>
+                  <p className="text-[12px] font-bold text-[#ff5252] break-keep leading-snug">
                     * 입금은 방송 다음날 오후 1시이전 미입금시<br/>
                     주문이 자동 취소 됩니다.
                   </p>
               </div>
               
-              <div className="bg-white rounded border border-gray-200 shadow-sm w-[360px] flex flex-col items-center justify-center py-5 px-6 relative">
-                  <div className="mb-3">
-                      <img src="/saemaeul_logo.png" alt="MG새마을금고" className="h-8 object-contain" />
+              <div className="bg-white rounded border border-gray-200 shadow-sm w-[340px] flex flex-col items-center justify-center py-4 px-6 relative">
+                  <div className="mb-2.5">
+                      <img src="/saemaeul_logo.png" alt="MG새마을금고" className="h-7 object-contain mix-blend-multiply" />
                   </div>
                   
-                  <div className="mb-2">
-                      <span className="text-[14px] font-bold text-gray-500 mr-2">예금주 :</span>
-                      <span className="font-extrabold text-gray-700 text-[15px]">보라몰(인다민)</span>
+                  <div className="mb-1.5 mt-2">
+                      <span className="text-[13px] font-bold text-gray-500 mr-2">예금주 :</span>
+                      <span className="font-extrabold text-gray-700 text-[14px]">보라몰(인다민)</span>
                   </div>
                   
-                  <div className="mt-1">
-                      <p className="font-black text-[28px] text-[#5e2f94] tracking-wider">010-6269-9612</p>
+                  <div className="mt-0.5">
+                      <p className="font-black text-[26px] text-[#5e2f94] tracking-wider">010-6269-9612</p>
                   </div>
               </div>
           </div>
-          <p className="text-center text-[10px] text-gray-300 mt-10 font-medium">
+          <p className="text-center text-[10px] text-gray-300 mt-6 font-medium">
               이용해 주셔서 감사합니다. | 보라몰
           </p>
       </div>
