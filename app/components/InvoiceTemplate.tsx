@@ -1,4 +1,5 @@
 import { boramallLogo, saemaeulLogo } from './logos';
+import { useEffect, useState } from 'react';
 
 export interface InvoiceData {
   customerName: string;
@@ -23,7 +24,38 @@ interface InvoiceTemplateProps {
 }
 
 export default function InvoiceTemplate({ data, elementId = "invoice-capture", hideButtons = false }: InvoiceTemplateProps) {
-  
+  const [cleanLogo, setCleanLogo] = useState(boramallLogo);
+  const [cleanSaemaeul, setCleanSaemaeul] = useState(saemaeulLogo);
+
+  useEffect(() => {
+    const processImage = (base64Url: string, setFn: (url: string) => void) => {
+      const img = new Image();
+      img.crossOrigin = "Anonymous";
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+            ctx.drawImage(img, 0, 0);
+            const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const d = imgData.data;
+            for (let i = 0; i < d.length; i += 4) {
+              const r = d[i], g = d[i+1], b = d[i+2];
+              if (r > 200 && g > 200 && b > 200) {
+                d[i+3] = 0; // Make light grays/whites strictly transparent
+              }
+            }
+            ctx.putImageData(imgData, 0, 0);
+            setFn(canvas.toDataURL("image/png"));
+        }
+      };
+      img.src = base64Url;
+    };
+    if (boramallLogo) processImage(boramallLogo, setCleanLogo);
+    if (saemaeulLogo) processImage(saemaeulLogo, setCleanSaemaeul);
+  }, []);
+
   const handleDownloadImage = async () => {
     const element = document.getElementById(elementId);
     if (element) {
@@ -64,8 +96,8 @@ export default function InvoiceTemplate({ data, elementId = "invoice-capture", h
       {/* Header */}
       <div className="px-8 pt-6 pb-2 flex justify-between items-center border-b-2 border-transparent">
         <div className="flex-1 flex items-center pt-2">
-            {/* Logo: Base64 + Multiply blend mode + Brightness/Contrast to completely erase off-white gray box */}
-            <img src={boramallLogo} alt="보라몰" className="h-28 lg:h-32 object-contain mix-blend-multiply brightness-110 contrast-125 transform scale-110 origin-left" />
+            {/* Logo: base64 properly background-stripped natively */}
+            <img src={cleanLogo} alt="보라몰" className="h-28 lg:h-32 object-contain transform scale-110 origin-left" />
         </div>
         <div className="flex-1 flex justify-center items-center gap-2">
             <div className={`${themeColor} text-white px-3 py-1 rounded text-[10px] font-bold tracking-widest`}>날짜</div>
@@ -131,9 +163,11 @@ export default function InvoiceTemplate({ data, elementId = "invoice-capture", h
           {/* Total Price Right Aligned */}
           <div className="flex justify-end items-end mt-4 mb-2 pr-4">
               <span className="font-extrabold text-gray-800 mr-3 text-lg">총금액</span>
-              <span className="font-black text-3xl text-gray-900 tracking-tight">
-                  {data.totalPrice.toLocaleString()}<span className="text-2xl font-black ml-1 text-gray-900">원</span>
-              </span>
+              <div className="bg-[#ede7f6] px-4 py-1.5 rounded-xl border border-[#d1c4e9] shadow-sm">
+                  <span className="font-black text-2xl text-[#311b92] tracking-tight">
+                      {data.totalPrice.toLocaleString()}<span className="text-xl font-black ml-1 text-[#311b92]">원</span>
+                  </span>
+              </div>
           </div>
       </div>
 
@@ -152,13 +186,16 @@ export default function InvoiceTemplate({ data, elementId = "invoice-capture", h
               </div>
               
               <div className="bg-white rounded border border-gray-200 shadow-sm w-[340px] flex flex-col items-center justify-center py-4 px-6 relative">
-                  <div className="mb-2.5">
-                      <img src={saemaeulLogo} alt="MG새마을금고" className="h-7 object-contain mix-blend-multiply" />
+                  <div className="font-black text-[13px] bg-[#f5f5f5] px-4 py-1.5 rounded-full text-gray-600 mb-3 shadow-inner border border-gray-200 tracking-tight">
+                      입금하실 계좌
+                  </div>
+                  <div className="mb-2.5 mt-1">
+                      <img src={cleanSaemaeul} alt="MG새마을금고" className="h-7 object-contain" />
                   </div>
                   
-                  <div className="mb-1.5 mt-2">
-                      <span className="text-[13px] font-bold text-gray-500 mr-2">예금주 :</span>
-                      <span className="font-extrabold text-gray-700 text-[14px]">보라몰(인다민)</span>
+                  <div className="mb-2 mt-2 bg-[#f4effa] px-4 py-2 rounded-lg w-full text-center border border-[#e8dff4] shadow-sm">
+                      <span className="text-[14px] font-bold text-gray-600 mr-2 tracking-tight">예금주 :</span>
+                      <span className="font-extrabold text-[#311b92] text-[17px] tracking-tight">보라몰(인다민)</span>
                   </div>
                   
                   <div className="mt-0.5">
