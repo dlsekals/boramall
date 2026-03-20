@@ -172,19 +172,19 @@ export default function InvoiceTemplate({ data, elementId = "invoice-capture", h
                   </p>
               </div>
               
-              <div className="bg-white rounded border border-gray-200 shadow-sm w-[300px] flex flex-col items-center justify-center py-3 px-5 relative">
-                  <div className="font-extrabold text-[20px] text-[#4527a0] mb-2.5 tracking-wider">
+              <div className="bg-white rounded border border-gray-200 shadow-sm w-[300px] flex flex-col items-center justify-center pt-2 pb-2 px-5 relative">
+                  <div className="font-extrabold text-[20px] text-[#4527a0] mb-1 tracking-wider leading-none">
                       입금하실 계좌
                   </div>
-                  <div className="mb-2 mt-0.5">
+                  <div className="mb-0.5 mt-1">
                       <img src={cleanSaemaeul} alt="MG새마을금고" className="h-8 object-contain" />
                   </div>
                   
-                  <div className="mt-1 mb-1">
-                      <p className="font-black text-[26px] text-[#4527a0] tracking-wider">010-6269-9612</p>
+                  <div className="mb-0.5 mt-0.5">
+                      <p className="font-black text-[26px] text-[#4527a0] tracking-wider leading-none">010-6269-9612</p>
                   </div>
                   
-                  <div className="mb-1 mt-1 w-full text-center">
+                  <div className="w-full text-center mt-1">
                       <span className="text-[15px] font-bold text-gray-600 mr-2 tracking-tight">예금주 :</span>
                       <span className="font-black text-[#4527a0] text-[17px] tracking-tight">보라몰(인다민)</span>
                   </div>
