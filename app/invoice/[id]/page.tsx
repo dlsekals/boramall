@@ -31,8 +31,8 @@ export default function DynamicInvoicePage() {
                     price: i.price
                 })),
                 totalPrice: order.totalPrice,
-                bankName: "농축협",
-                accountNumber: "352-0622-0889-03",
+                bankName: "새마을금고",
+                accountNumber: "010-6269-9612",
                 accountHolder: "보라몰",
                 isPaid: order.isPaid
              };

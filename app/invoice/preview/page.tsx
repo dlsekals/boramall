@@ -18,8 +18,8 @@ export default function InvoicePreviewPage() {
     date: "2026. 02. 16.", // Fixed date to prevent hydration error
     items: items,
     totalPrice: totalPrice,
-    bankName: "농축협",
-    accountNumber: "352-0622-0889-03",
+    bankName: "새마을금고",
+    accountNumber: "010-6269-9612",
     accountHolder: "보라몰",
     isPaid: false, // Change to true to test "Paid" stamp
   };

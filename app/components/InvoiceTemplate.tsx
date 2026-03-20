@@ -64,44 +64,43 @@ export default function InvoiceTemplate({ data, elementId = "invoice-capture", h
       )}
 
       {/* Header */}
-      <div className="p-4 sm:px-12 sm:py-8 flex justify-between items-start">
+      <div className="p-4 sm:px-12 sm:py-5 flex justify-between items-start">
         <div>
             <h1 className={`text-2xl sm:text-4xl font-extrabold ${textColor} tracking-tight`}>보라몰</h1>
             <p className="text-gray-500 text-xs sm:text-sm mt-1">프리미엄 라이브 커머스</p>
         </div>
         <div className="text-right">
-            <h2 className={`text-2xl sm:text-4xl font-black ${textColor} opacity-50 uppercase tracking-widest`}>주문내역</h2>
+            <h2 className={`text-2xl sm:text-3xl font-black ${textColor} opacity-50 uppercase tracking-widest`}>주문내역</h2>
         </div>
       </div>
 
       {/* Info Section */}
-      <div className="px-4 sm:px-12 pb-4 sm:pb-8 flex flex-col sm:flex-row justify-between gap-4 sm:gap-8">
+      <div className="px-4 sm:px-12 pb-2 sm:pb-3 flex flex-col sm:flex-row justify-between gap-4 sm:gap-8">
           <div className="flex">
-              <div className={`${themeColor} text-white p-2 px-6 rounded-l-md`}>
-                  <span className="font-bold text-sm uppercase tracking-wider">날짜</span>
+              <div className={`${themeColor} text-white p-1.5 px-4 rounded-l-md`}>
+                  <span className="font-bold text-xs uppercase tracking-wider">날짜</span>
               </div>
-              <div className="bg-gray-100 p-2 px-6 flex-1 text-right font-medium text-gray-700 rounded-r-md">
+              <div className="bg-gray-100 p-1.5 px-4 flex-1 text-right font-medium text-gray-700 rounded-r-md text-sm">
                   {data.date}
               </div>
           </div>
       </div>
 
       {/* Addresses */}
-      <div className="grid grid-cols-2 gap-12 p-6 sm:px-12 sm:py-8">
+      <div className="grid grid-cols-2 gap-8 px-4 sm:px-12 pb-4 sm:pb-6">
           <div>
-              <h3 className={`font-bold text-lg mb-4 uppercase tracking-wider border-b-2 border-gray-100 pb-2 ${textColor}`}>판매자</h3>
-              <p className="font-bold text-gray-800">보라몰 (Bora Mall)</p>
-              <p className="text-gray-500 text-sm mt-1">서울시 강남구 테헤란로 123</p>
-              <p className="text-gray-500 text-sm">boramall@example.com</p>
-              <p className="text-gray-500 text-sm">010-1234-5678</p>
+              <h3 className={`font-bold text-xs sm:text-sm mb-2 uppercase tracking-wider border-b-2 border-gray-100 pb-1 ${textColor}`}>판매자</h3>
+              <p className="font-bold text-gray-800 text-xs mt-1">보라몰</p>
+              <p className="text-gray-500 text-[10px] mt-0.5">파주시 월롱면 도감로172번길 44-10</p>
+              <p className="text-gray-500 text-[10px]">010-6269-9612</p>
           </div>
           <div>
-              <h3 className={`font-bold text-lg mb-4 uppercase tracking-wider border-b-2 border-gray-100 pb-2 ${textColor}`}>구매자</h3>
-              <p className="font-bold text-gray-800">{data.customerName} 님</p>
+              <h3 className={`font-bold text-xs sm:text-sm mb-2 uppercase tracking-wider border-b-2 border-gray-100 pb-1 ${textColor}`}>구매자</h3>
+              <p className="font-bold text-gray-800 text-xs mt-1">{data.customerName} 님</p>
               {data.address ? (
-                  <p className="text-gray-600 text-sm mt-1 break-keep">{data.address}</p>
+                  <p className="text-gray-600 text-[10px] mt-0.5 break-keep">{data.address}</p>
               ) : (
-                  <p className="text-gray-400 text-sm mt-1">(주소 정보 없음)</p>
+                  <p className="text-gray-400 text-[10px] mt-0.5">(주소 정보 없음)</p>
               )}
           </div>
       </div>
@@ -152,13 +151,11 @@ export default function InvoiceTemplate({ data, elementId = "invoice-capture", h
           <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
               <div className="text-left w-full sm:w-auto">
                   <p className="font-bold text-gray-800 text-lg mb-1">무통장 입금 계좌 안내</p>
-                  <p className="text-xs text-gray-500">* 1일 이내 미입금 시 주문이 자동 취소됩니다.</p>
+                  <p className="text-xs sm:text-sm font-bold text-red-500">* 입금은 방송 다음날 오후 1시이전 미입금시 주문이 자동 취소 됩니다.</p>
               </div>
               <div className="w-full sm:w-auto bg-white rounded-lg border border-gray-200 px-6 py-4 shadow-sm min-w-[320px]">
                   <div className="flex items-center gap-3 mb-2 border-b border-gray-100 pb-2">
-                      {/* NH Logo */}
-                      <img src="/nh_logo.png" alt="NH농협" className="h-6 object-contain" />
-                      <span className="font-bold text-gray-800 text-lg">농축협</span>
+                      <span className="font-bold text-gray-800 text-lg">{data.bankName}</span>
                   </div>
                   
                   <div className="flex justify-between items-center mb-1">
