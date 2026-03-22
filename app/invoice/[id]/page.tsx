@@ -22,14 +22,12 @@ export default function DynamicInvoicePage() {
       // First pass to warm up cache (prevents blank/stale render)
       await toPng(element, { cacheBust: true });
       await new Promise(r => setTimeout(r, 100));
-      // Second pass with explicit dimensions to prevent clipping
+      // Second pass with natural dimensions and margin reset to prevent clipping
       const dataUrl = await toPng(element, {
         cacheBust: true,
         pixelRatio: 2,
         backgroundColor: '#ffffff',
-        style: { transform: 'scale(1)', transformOrigin: 'top left', width: '672px', maxWidth: '672px' },
-        width: 672,
-        height: element.scrollHeight,
+        style: { margin: '0', transform: 'scale(1)', transformOrigin: 'top left' },
       });
       const link = document.createElement('a');
       link.href = dataUrl;

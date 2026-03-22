@@ -131,7 +131,7 @@ export default function OrderManagementTab() {
                     cacheBust: true, 
                     pixelRatio: 2, 
                     backgroundColor: '#ffffff', 
-                    style: { transform: 'scale(1)', transformOrigin: 'top left', width: '672px', maxWidth: '672px' },
+                    style: { transform: 'scale(1)', transformOrigin: 'top left', width: '672px', maxWidth: '672px', margin: '0' },
                     width: 672, 
                     height: el.scrollHeight 
                 });
