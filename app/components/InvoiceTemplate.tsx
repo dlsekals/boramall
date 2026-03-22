@@ -5,7 +5,9 @@ import { useEffect, useState } from 'react';
 
 export interface InvoiceData {
   customerName: string;
-  address?: string;
+  customerPhone?: string;
+  customerNickname?: string;
+  address: string;
   date: string;
   items: {
     name: string;
@@ -25,7 +27,8 @@ interface InvoiceTemplateProps {
   hideButtons?: boolean;
 }
 
-export default function InvoiceTemplate({ data, elementId = "invoice-capture", hideButtons = false }: InvoiceTemplateProps) {
+export default function InvoiceTemplate({ data, hideButtons = false, customId }: { data: InvoiceData, hideButtons?: boolean, customId?: string }) {
+  const elementId = customId || "invoice-capture";
   const [cleanLogo, setCleanLogo] = useState(boramallLogo);
   const [cleanSaemaeul, setCleanSaemaeul] = useState(saemaeulLogo);
 
@@ -94,19 +97,34 @@ export default function InvoiceTemplate({ data, elementId = "invoice-capture", h
           <div>
               <h3 className={`font-bold text-[13px] mb-1.5 tracking-wider ${textColor}`}>판매자</h3>
               <div className={`h-0.5 w-full bg-[#311b92] opacity-20 mb-2`}></div>
-              <p className="font-black text-gray-800 text-[13px] mb-1">보라몰</p>
-              <p className="text-gray-400 text-[10px] font-medium tracking-tight">파주시 월롱면 도감로172번길 44-10</p>
-              <p className="text-gray-400 text-[10px] font-medium tracking-tight">010-6269-9612</p>
+              <p className="font-black text-gray-800 text-[18px] mb-1.5">보라몰</p>
+              <div className="flex flex-col gap-0.5 mt-1">
+                  <p className="text-gray-500 text-[12px] font-medium tracking-tight flex items-center gap-1">🏠 파주시 월롱면 도감로172번길 44-10</p>
+                  <p className="text-gray-500 text-[12px] font-medium tracking-tight flex items-center gap-1">📞 010-6269-9612</p>
+              </div>
           </div>
           <div>
-              <h3 className={`font-bold text-[13px] mb-1.5 tracking-wider ${textColor}`}>구매자</h3>
-              <div className={`h-0.5 w-full bg-[#311b92] opacity-20 mb-2`}></div>
-              <p className="font-black text-gray-800 text-[13px] mb-1">{data.customerName} 님</p>
-              {data.address ? (
-                  <p className="text-gray-400 text-[10px] font-medium tracking-tight break-keep">{data.address.replace(/\\n/g, ' ')}</p>
-              ) : (
-                  <p className="text-gray-300 text-[10px] font-medium tracking-tight">(주소 정보 없음)</p>
-              )}
+              {/* Buyer */}
+              <div className="flex flex-col">
+                <span className="font-bold text-[13px] mb-1.5 tracking-wider text-[#311b92]">구매자</span>
+                <div className={`h-0.5 w-full bg-[#311b92] opacity-20 mb-2`}></div>
+                
+                <span className="font-black text-gray-800 text-[18px] mb-1.5 flex items-baseline gap-1.5">
+                  {data.customerName} 님 
+                  <span className="text-gray-500 text-[14px] font-bold tracking-tight">
+                    (@{data.customerNickname ? data.customerNickname.replace(/^@/, '') : '닉네임없음'})
+                  </span>
+                </span>
+                
+                <div className="flex flex-col gap-1 mt-1 bg-gray-50 p-2 rounded border border-gray-100">
+                    <span className="text-gray-800 text-[13px] leading-tight tracking-tight font-bold flex items-center gap-1">
+                      📞 {data.customerPhone || '전화번호 미기입'}
+                    </span>
+                    <span className="text-gray-600 text-[12px] leading-tight break-keep flex items-start gap-1">
+                      🏠 {data.address || '주소 미기입'}
+                    </span>
+                </div>
+              </div>
           </div>
       </div>
 

@@ -51,6 +51,7 @@ export interface Order {
 
 
 interface AppContextType {
+  isLoaded: boolean;
   users: User[];
   products: Product[];
   orders: Order[];
@@ -616,6 +617,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AppContext.Provider value={{
+      isLoaded,
       users, products, orders,
       registerUser, getUser, getUserByHandle, updateUser, deleteUser, toggleUserBlacklist, linkUserHandle,
       addProduct,

@@ -14,6 +14,7 @@ export default function OrderManagementTab() {
   const [filterOnlyPreparing, setFilterOnlyPreparing] = useState(false);
   const [filterOnlyNotExported, setFilterOnlyNotExported] = useState(true); // 기본적으로 안 뽑은 것만
   const [sortOrder, setSortOrder] = useState<'date_desc' | 'price_desc' | 'price_asc'>('date_desc');
+  const [searchQuery, setSearchQuery] = useState('');
   
   const [isDownloading, setIsDownloading] = useState(false);
 
@@ -41,9 +42,18 @@ export default function OrderManagementTab() {
       return b.id.localeCompare(a.id); // Default Date (ID) Descending: Newest first
   });
 
-  const filteredOrders = filterUnpaid 
+  const tempFiltered = filterUnpaid 
     ? sortedOrders.filter(o => !o.isPaid)
     : sortedOrders;
+
+  const filteredOrders = tempFiltered.filter(o => {
+    if (!searchQuery) return true;
+    const user = users.find(u => u.phone === o.userId || u.nickname === o.userId);
+    const term = searchQuery.toLowerCase();
+    const matchName = user?.name?.toLowerCase().includes(term);
+    const matchNick = user?.nickname?.toLowerCase().includes(term);
+    return matchName || matchNick;
+  });
 
   // Group orders purely for visual list display.
   // Iterate through sorted, if user seen, skip. If not seen, add all their orders.
@@ -107,15 +117,28 @@ export default function OrderManagementTab() {
         const folder = zip.folder("Invoices");
         await new Promise(r => setTimeout(r, 500)); 
 
+        const originalScrollY = window.scrollY;
+        window.scrollTo(0, 0);
+
         let count = 0;
         for (const order of ordersToDownload) {
             const el = document.getElementById(`invoice-render-${order.id}`);
             if (el) {
-                const dataUrl = await toPng(el, { cacheBust: true, pixelRatio: 2 });
+                // Prevent duplicate DOM cache bug by using the dual-render pass
+                await toPng(el, { cacheBust: true });
+                await new Promise(r => setTimeout(r, 50));
+                const dataUrl = await toPng(el, { 
+                    cacheBust: true, 
+                    pixelRatio: 2, 
+                    backgroundColor: '#ffffff', 
+                    style: { transform: 'scale(1)', transformOrigin: 'top left', width: '672px', maxWidth: '672px' },
+                    width: 672, 
+                    height: el.scrollHeight 
+                });
                 const base64Data = dataUrl.split(',')[1];
                 const user = users.find(u => u.phone === order.userId || u.nickname === order.userId);
                 const displayId = user?.nickname || order.userId;
-                const filename = `${user?.name || displayId}_${displayId}_Invoice.png`;
+                const filename = `${user?.name || displayId}_${displayId}_${order.id}_Invoice.png`;
                 folder?.file(filename, base64Data, { base64: true });
                 count++;
             }
@@ -123,6 +146,8 @@ export default function OrderManagementTab() {
 
         const content = await zip.generateAsync({ type: "blob" });
         saveAs(content, `BoraMall_Invoices_${new Date().toISOString().slice(0,10)}.zip`);
+        
+        window.scrollTo(0, originalScrollY);
         alert(`${count}개의 청구서를 다운로드했습니다.`);
 
     } catch (e) {
@@ -403,6 +428,16 @@ export default function OrderManagementTab() {
                     <option value="paid">✅ 입금완료건만</option>
                 </select>
             </div>
+            
+            <div className="flex items-center gap-2 mt-2 sm:mt-0 w-full sm:w-auto flex-1 max-w-xs">
+                <input 
+                    type="text" 
+                    placeholder="🔍 이름, 닉네임 검색..." 
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="border border-gray-300 rounded px-2 py-1 text-sm w-full focus:ring-[#673ab7] focus:border-[#673ab7] outline-none"
+                />
+            </div>
         </div>
         
         {/* Right Controls: Action Buttons */}
@@ -452,10 +487,10 @@ export default function OrderManagementTab() {
             <table className="w-full text-left text-xs sm:text-base">
                 <thead className="bg-gray-50 text-gray-500 font-medium border-b">
                     <tr>
-                        <th className="py-1 px-1 sm:py-2 sm:px-4 w-10 sm:w-20 text-center whitespace-nowrap">상태</th>
-                        <th className="py-1 px-1 sm:py-2 sm:px-4 whitespace-nowrap">구매자</th>
-                        <th className="py-1 px-1 sm:py-2 sm:px-4 whitespace-nowrap min-w-[120px]">내역</th>
-                        <th className="py-1 px-1 sm:py-2 sm:px-4 text-right whitespace-nowrap">
+                        <th className="py-0.5 px-1 sm:py-1 sm:px-4 w-10 sm:w-20 text-center whitespace-nowrap">상태</th>
+                        <th className="py-0.5 px-1 sm:py-1 sm:px-4 whitespace-nowrap">구매자</th>
+                        <th className="py-0.5 px-1 sm:py-1 sm:px-4 whitespace-nowrap min-w-[120px]">내역</th>
+                        <th className="py-0.5 px-1 sm:py-1 sm:px-4 text-right whitespace-nowrap">
                             <button 
                                 onClick={() => {
                                     if (sortOrder === 'date_desc') setSortOrder('price_desc');
@@ -473,8 +508,8 @@ export default function OrderManagementTab() {
                                 </span>
                             </button>
                         </th>
-                        <th className="py-1 px-1 sm:py-2 sm:px-4 text-center whitespace-nowrap">입금</th>
-                        <th className="py-1 px-1 sm:py-2 sm:px-4 text-center whitespace-nowrap">관리</th>
+                        <th className="py-0.5 px-1 sm:py-1 sm:px-4 text-center whitespace-nowrap">입금</th>
+                        <th className="py-0.5 px-1 sm:py-1 sm:px-4 text-center whitespace-nowrap">관리</th>
                     </tr>
                 </thead>
                 <tbody className="divide-y relative">
@@ -488,26 +523,28 @@ export default function OrderManagementTab() {
                         
                         return (
                             <tr key={order.id} className={`${order.isPaid ? 'bg-green-50' : 'bg-white'} ${isConsecutiveSameUser ? 'border-t-0 bg-gray-50/50' : ''} hover:bg-gray-50 transition-colors`}>
-                                <td className="py-1 px-1 sm:py-1.5 sm:px-4 text-center">
-                                    <span className={`px-1 py-0.5 sm:px-3 sm:py-1 rounded text-[10px] sm:text-sm font-bold whitespace-nowrap ${order.isPaid ? 'bg-green-200 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                                <td className="py-0.5 px-1 sm:py-1 sm:px-4 text-center">
+                                    <span className={`px-1 py-0.5 sm:px-3 sm:py-0.5 rounded text-[10px] sm:text-sm font-bold whitespace-nowrap ${order.isPaid ? 'bg-green-200 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
                                         {order.isPaid ? '완료' : '대기'}
                                     </span>
                                 </td>
-                                <td className="py-1 px-1 sm:py-2 sm:px-4 whitespace-nowrap min-w-[100px]">
+                                <td className="py-0.5 px-1 sm:py-1 sm:px-4 whitespace-nowrap min-w-[100px]">
                                     <div className="flex flex-col">
                                         <div>
                                             <span className="font-bold">{user?.name || '미등록'}</span>
                                             <span className="text-xs sm:text-sm text-gray-500 ml-1">({user?.nickname || order.userId})</span>
                                         </div>
-                                        {user?.phone && (
-                                            <span className="text-[11px] sm:text-xs text-gray-600 font-medium tracking-tight">
-                                                📞 {user.phone}
+                                        <div className="flex items-center gap-2 mt-0.5 h-4">
+                                            {user?.phone && (
+                                                <span className="text-[11px] sm:text-xs text-gray-600 font-medium tracking-tight">
+                                                    📞 {user.phone}
+                                                </span>
+                                            )}
+                                            {/* Display Order Date right below the name */}
+                                            <span className="text-[10px] sm:text-xs text-blue-600 font-medium border-l border-gray-300 pl-2 h-3 leading-3 flex items-center">
+                                               구매일: {order.createdAt?.split(' ')[0] || '-'}
                                             </span>
-                                        )}
-                                        {/* Display Order Date right below the name */}
-                                        <span className="text-[10px] sm:text-xs text-blue-600 mt-0.5 font-medium">
-                                           등록: {order.createdAt || '-'}
-                                        </span>
+                                        </div>
                                         {order.isPaid && (
                                             <div className="flex flex-wrap items-center gap-1 mt-1">
                                                 <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold shadow-sm border ${
@@ -523,15 +560,15 @@ export default function OrderManagementTab() {
                                          )}
                                      </div>
                                 </td>
-                                <td className="py-1 px-1 sm:py-1.5 sm:px-4">
+                                <td className="py-0.5 px-1 sm:py-1 sm:px-4">
                                     <button 
                                         onClick={() => toggleExpand(order.id)}
-                                        className="text-xs sm:text-sm text-gray-700 font-bold bg-white px-2 py-1 border border-gray-300 rounded shadow-sm hover:bg-gray-50 flex items-center gap-1"
+                                        className="text-xs sm:text-sm text-gray-700 font-bold bg-white px-2 py-0.5 border border-gray-300 rounded shadow-sm hover:bg-gray-50 flex items-center gap-1"
                                     >
                                         🛒 구매내역 {expandedOrders[order.id] ? '▲' : '▼'}
                                     </button>
                                     {expandedOrders[order.id] && (
-                                        <ul className="mt-2 text-xs sm:text-sm text-gray-600 space-y-0.5 bg-gray-50 p-2 rounded border border-gray-200 shadow-inner inline-block">
+                                        <ul className="mt-1 text-xs sm:text-sm text-gray-600 space-y-0.5 bg-gray-50 p-2 rounded border border-gray-200 shadow-inner inline-block">
                                             {order.items.map((item, idx) => (
                                                 <li key={idx} className="whitespace-nowrap flex justify-between gap-4">
                                                     <span>{item.productName}</span>
@@ -541,18 +578,18 @@ export default function OrderManagementTab() {
                                         </ul>
                                     )}
                                 </td>
-                                <td className="py-1 px-1 sm:py-1.5 sm:px-4 text-right font-mono font-bold whitespace-nowrap text-xs sm:text-base">
+                                <td className="py-0.5 px-1 sm:py-1 sm:px-4 text-right font-mono font-bold whitespace-nowrap text-xs sm:text-base">
                                     {order.totalPrice.toLocaleString()}
                                 </td>
-                                <td className="py-1 px-1 sm:py-1.5 sm:px-4 text-center">
+                                <td className="py-0.5 px-1 sm:py-1 sm:px-4 text-center">
                                     <input 
                                         type="checkbox"
                                         checked={order.isPaid}
                                         onChange={(e) => markOrderPaid(order.id, e.target.checked)}
-                                        className="w-4 h-4 sm:w-6 sm:h-6 accent-green-600 cursor-pointer"
+                                        className="w-4 h-4 sm:w-5 sm:h-5 accent-green-600 cursor-pointer"
                                     />
                                 </td>
-                                <td className="py-1 px-1 sm:py-1.5 sm:px-4 text-center space-x-1 sm:space-x-2 whitespace-nowrap">
+                                <td className="py-0.5 px-1 sm:py-1 sm:px-4 text-center space-x-1 sm:space-x-2 whitespace-nowrap">
                                     {order.isExportedToExcel && (
                                         <span className="inline-block bg-pink-100 text-pink-700 px-1 py-0.5 sm:px-2 sm:py-1.5 rounded text-[10px] sm:text-xs font-bold mr-1">
                                             ✓ 추출됨
@@ -631,7 +668,7 @@ export default function OrderManagementTab() {
       )}
 
       {/* Hidden Render Area for Bulk Download */}
-      <div style={{ position: 'absolute', opacity: 0, pointerEvents: 'none', zIndex: -9999 }}>
+      <div style={{ position: 'absolute', top: 0, left: 0, opacity: 0, pointerEvents: 'none', zIndex: -9999 }}>
         {isDownloading && filteredOrders.map(order => {
              // ... [Keeping existing render logic] ...
              const user = users.find(u => u.phone === order.userId || u.nickname === order.userId);
@@ -639,6 +676,8 @@ export default function OrderManagementTab() {
             
             const data: InvoiceData = {
                 customerName: user.name,
+                customerPhone: user.phone,
+                customerNickname: user.nickname,
                 address: user.address,
                 date: order.createdAt,
                 items: order.items.map(i => ({
@@ -653,7 +692,7 @@ export default function OrderManagementTab() {
 
             return (
                 <div key={order.id} id={`invoice-render-${order.id}`}>
-                    <InvoiceTemplate data={data} hideButtons={true} />
+                    <InvoiceTemplate data={data} hideButtons={true} customId={`invoice-capture-${order.id}`} />
                 </div>
             );
         })}

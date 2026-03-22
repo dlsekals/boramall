@@ -8,15 +8,24 @@ export default function InvoicePage() {
   const handleDownloadImage = async () => {
     const element = document.getElementById('invoice-capture');
     if (element) {
-      // Lazy load html-to-image to avoid server-side issues
+      const originalScrollY = window.scrollY;
+      window.scrollTo(0, 0);
       const { toPng } = await import('html-to-image');
       
-      // Temporarily hide the button for capture
       const buttonContainer = element.querySelector('.no-capture') as HTMLElement;
       if (buttonContainer) buttonContainer.style.visibility = 'hidden';
 
       try {
-        const dataUrl = await toPng(element, { cacheBust: true });
+        await toPng(element, { cacheBust: true });
+        await new Promise(r => setTimeout(r, 100));
+        const dataUrl = await toPng(element, { 
+          cacheBust: true, 
+          pixelRatio: 2, 
+          backgroundColor: '#ffffff',
+          style: { transform: 'scale(1)', transformOrigin: 'top left', width: element.scrollWidth + 'px', maxWidth: element.scrollWidth + 'px' },
+          width: element.scrollWidth,
+          height: element.scrollHeight
+        });
         
         const link = document.createElement("a");
         link.href = dataUrl;
@@ -26,15 +35,16 @@ export default function InvoicePage() {
         console.error("Failed to generate image", error);
         alert("이미지 저장 중 오류가 발생했습니다.");
       } finally {
-        // Show button again
+        window.scrollTo(0, originalScrollY);
         if (buttonContainer) buttonContainer.style.visibility = 'visible';
       }
     }
   };
 
-  // Mock Data for demonstration
   const invoiceData = {
     customerName: "홍길동",
+    customerPhone: "010-1234-5678",
+    customerNickname: "@gildong",
     date: "2026. 02. 16",
     items: Array.from({ length: 40 }, (_, i) => ({
       name: `상품 ${i + 1} (Product ${i + 1})`,
@@ -50,7 +60,7 @@ export default function InvoicePage() {
 
   return (
     <div className="min-h-screen py-8 px-4 flex flex-col justify-center sm:py-12">
-      <div className="google-form-card w-full">
+      <div className="google-form-card w-full max-w-3xl mx-auto">
         <div className="google-form-header"></div>
         <div id="invoice-capture" className="p-6 sm:p-10 bg-white">
           
@@ -64,11 +74,14 @@ export default function InvoicePage() {
             <div className="grid grid-cols-2 gap-4 text-sm mb-6">
               <div className="flex flex-col sm:flex-row justify-between sm:gap-4">
                 <span className="font-semibold text-gray-700 whitespace-nowrap">주문자:</span>
-                <span className="text-right sm:text-left">{invoiceData.customerName}</span>
+                <span className="text-right sm:text-left flex flex-col items-end sm:items-start">
+                  <span className="font-black text-[15px]">{invoiceData.customerName} 님 <span className="text-gray-500 font-bold text-[13px]">({invoiceData.customerNickname})</span></span>
+                  <span className="text-[12px] text-gray-800 font-bold mt-1">전화번호: {invoiceData.customerPhone}</span>
+                </span>
               </div>
               <div className="flex flex-col sm:flex-row justify-between sm:gap-4">
                 <span className="font-semibold text-gray-700 whitespace-nowrap">날짜:</span>
-                <span className="text-right sm:text-left">{invoiceData.date}</span>
+                <span className="text-right sm:text-left font-medium">{invoiceData.date}</span>
               </div>
             </div>
 
