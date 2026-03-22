@@ -253,14 +253,17 @@ export default function OrderEntryTab({ initialProductId }: OrderEntryTabProps) 
       setIsDropdownOpen(false);
       setIsEditingPrice(false);
       
+      // 추가된 기능: 상품 목록에서 선택 시 자동으로 클립보드에 복사
+      handleCopyProductInfo(null, product);
+
       // Auto-focus input area if a product is selected
       if (textareaRef.current) {
           textareaRef.current.focus();
       }
   };
 
-  const handleCopyProductInfo = (e: React.MouseEvent, p: Product) => {
-      e.stopPropagation();
+  const handleCopyProductInfo = (e: React.MouseEvent | null, p: Product) => {
+      if (e) e.stopPropagation();
       const text = `🔥 ${p.name} 초특가 ${p.price}원!! 🔥 ${p.stock}개 한정.`;
       
       if (navigator.clipboard && window.isSecureContext) {
