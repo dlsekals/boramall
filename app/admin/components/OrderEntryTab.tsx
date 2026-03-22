@@ -829,12 +829,13 @@ export default function OrderEntryTab({ initialProductId }: OrderEntryTabProps) 
                             <li 
                                 key={p.id} 
                                 id={`product-item-${p.id}`}
-                                onClick={() => {
+                                onClick={(e) => {
                                     if (isUnavailable) return;
                                     setSelectedProductId(p.id);
                                     setSearchQuery(p.name);
                                     setIsDropdownOpen(false);
                                     setIsEditingPrice(false);
+                                    handleCopyProductInfo(e, p);
                                 }}
                                 className={`py-1.5 px-3 border-b last:border-0 ${isUnavailable ? 'bg-gray-50 text-gray-400 cursor-not-allowed' : 'hover:bg-[#f3effb] cursor-pointer'} ${selectedProductId === p.id ? 'bg-[#ede7f6]' : ''}`}
                             >
