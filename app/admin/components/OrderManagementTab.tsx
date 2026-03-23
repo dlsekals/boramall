@@ -17,6 +17,7 @@ export default function OrderManagementTab() {
   const [searchQuery, setSearchQuery] = useState('');
   
   const [isDownloading, setIsDownloading] = useState(false);
+  const [sendingAlimtalk, setSendingAlimtalk] = useState<string | null>(null);
 
   // Edit State
   const [editingOrder, setEditingOrder] = useState<Order | null>(null);
@@ -305,6 +306,39 @@ export default function OrderManagementTab() {
       
       // Update exported status
       markOrdersAsExported(ordersToExport.map(o => o.id));
+  };
+
+  const handleSendAlimtalk = async (order: Order, userName: string, userPhone: string) => {
+      if (!userPhone) {
+          alert("고객 전화번호가 없습니다. 알림톡을 발송할 수 없습니다.");
+          return;
+      }
+      if (!confirm(`${userName} 님에게 알림톡 청구서를 발송하시겠습니까?`)) return;
+
+      setSendingAlimtalk(order.id);
+      try {
+          const res = await fetch('/api/alimtalk', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                  orderId: order.id,
+                  name: userName,
+                  phone: userPhone,
+                  totalPrice: order.totalPrice
+              })
+          });
+          const data = await res.json();
+          if (data.success) {
+              alert("알림톡 발송 성공!");
+          } else {
+              alert("알림톡 발송 실패: " + data.error);
+          }
+      } catch (err) {
+          alert("알림톡 발송 중 오류가 발생했습니다.");
+          console.error(err);
+      } finally {
+          setSendingAlimtalk(null);
+      }
   };
 
   const openEditModal = (order: Order) => {
@@ -602,6 +636,13 @@ export default function OrderManagementTab() {
                                     >
                                         청구서
                                     </a>
+                                    <button
+                                        onClick={() => handleSendAlimtalk(order, user?.name || '고객', user?.phone || '')}
+                                        disabled={sendingAlimtalk === order.id}
+                                        className="bg-yellow-100 text-yellow-800 px-1 py-0.5 sm:px-3 sm:py-1.5 rounded text-[10px] sm:text-sm font-bold hover:bg-yellow-200 disabled:opacity-50"
+                                    >
+                                        {sendingAlimtalk === order.id ? '발송중..' : '💬 알림톡'}
+                                    </button>
                                     <button
                                         onClick={() => openEditModal(order)}
                                         className="bg-blue-100 text-blue-700 px-1 py-0.5 sm:px-3 sm:py-1.5 rounded text-[10px] sm:text-sm font-medium hover:bg-blue-200"
