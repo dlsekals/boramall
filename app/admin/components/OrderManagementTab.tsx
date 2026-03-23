@@ -17,6 +17,14 @@ export default function OrderManagementTab() {
   const [searchQuery, setSearchQuery] = useState('');
   
   const [isDownloading, setIsDownloading] = useState(false);
+  const [sendingAlimtalk, setSendingAlimtalk] = useState<string | null>(null);
+
+  // Bulk Alimtalk State
+  const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
+  const [bulkTargets, setBulkTargets] = useState<Order[]>([]);
+  const [bulkSelection, setBulkSelection] = useState<Record<string, boolean>>({});
+  const [bulkProgress, setBulkProgress] = useState<{ current: number, total: number, successes: number, fails: number } | null>(null);
+  const [isBulkSending, setIsBulkSending] = useState(false);
 
   // Edit State
   const [editingOrder, setEditingOrder] = useState<Order | null>(null);
@@ -307,6 +315,113 @@ export default function OrderManagementTab() {
       markOrdersAsExported(ordersToExport.map(o => o.id));
   };
 
+  const handleSendAlimtalk = async (order: Order, userName: string, userPhone: string) => {
+      if (!userPhone) {
+          alert("고객 전화번호가 없습니다. 알림톡을 발송할 수 없습니다.");
+          return;
+      }
+      if (!confirm(`${userName} 님에게 알림톡 청구서를 발송하시겠습니까?`)) return;
+
+      setSendingAlimtalk(order.id);
+      try {
+          const res = await fetch('/api/alimtalk', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                  orderId: order.id,
+                  name: userName,
+                  phone: userPhone,
+                  totalPrice: order.totalPrice
+              })
+          });
+          const data = await res.json();
+          if (data.success) {
+              alert("알림톡 발송 성공!");
+          } else {
+              alert("알림톡 발송 실패: " + data.error);
+          }
+      } catch (err) {
+          alert("알림톡 발송 중 오류가 발생했습니다.");
+          console.error(err);
+      } finally {
+          setSendingAlimtalk(null);
+      }
+  };
+
+  const openBulkModal = () => {
+      const targets = downloadFilter === 'paid' 
+          ? filteredOrders.filter(o => o.isPaid) 
+          : filteredOrders;
+      
+      if (targets.length === 0) {
+          alert('발송 대상이 없습니다. 먼저 조회를 해주세요.');
+          return;
+      }
+      
+      setBulkTargets(targets);
+      const initialSelection: Record<string, boolean> = {};
+      targets.forEach(t => initialSelection[t.id] = true);
+      setBulkSelection(initialSelection);
+      setIsBulkModalOpen(true);
+      setBulkProgress(null);
+  };
+
+  const handleBulkSend = async () => {
+      const selectedOrders = bulkTargets.filter(o => bulkSelection[o.id]);
+      if (selectedOrders.length === 0) {
+          alert('발송할 대상을 선택해 주세요.');
+          return;
+      }
+      
+      if (!confirm(`총 ${selectedOrders.length}건의 알림톡을 일괄 발송하시겠습니까?`)) return;
+      
+      setIsBulkSending(true);
+      setBulkProgress({ current: 0, total: selectedOrders.length, successes: 0, fails: 0 });
+      
+      let successCount = 0;
+      let failCount = 0;
+      
+      for (let i = 0; i < selectedOrders.length; i++) {
+          const order = selectedOrders[i];
+          const user = users.find(u => u.phone === order.userId || u.nickname === order.userId);
+          const name = user?.name || '고객';
+          const phone = user?.phone || '';
+          
+          if (!phone) {
+              failCount++;
+              setBulkProgress({ current: i + 1, total: selectedOrders.length, successes: successCount, fails: failCount });
+              continue;
+          }
+          
+          try {
+              const res = await fetch('/api/alimtalk', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                      orderId: order.id,
+                      name: name,
+                      phone: phone,
+                      totalPrice: order.totalPrice
+                  })
+              });
+              const data = await res.json();
+              if (data.success) {
+                  successCount++;
+              } else {
+                  failCount++;
+              }
+          } catch (e) {
+              failCount++;
+          }
+          
+          setBulkProgress({ current: i + 1, total: selectedOrders.length, successes: successCount, fails: failCount });
+          await new Promise(r => setTimeout(r, 200));
+      }
+      
+      setIsBulkSending(false);
+      alert(`발송이 완료되었습니다.\n성공: ${successCount}건, 실패: ${failCount}건`);
+  };
+
   const openEditModal = (order: Order) => {
       setEditingOrder(order);
       // Deep copy items to avoid mutating state directly
@@ -472,6 +587,13 @@ export default function OrderManagementTab() {
                 📦 롯데택배 엑셀
             </button>
             <button 
+                onClick={openBulkModal}
+                disabled={isDownloading || filteredOrders.length === 0}
+                className="bg-yellow-400 text-yellow-900 px-3 py-2 sm:px-4 rounded font-bold hover:bg-yellow-500 disabled:bg-gray-400 flex items-center justify-center gap-1 sm:gap-2 shadow-sm text-sm sm:text-base flex-1 sm:flex-none"
+            >
+                💬 일괄 알림톡
+            </button>
+            <button 
                 onClick={handleBulkDownload}
                 disabled={isDownloading || filteredOrders.length === 0}
                 className="bg-[#673ab7] text-white px-3 py-2 sm:px-4 rounded font-bold hover:bg-[#5e35b1] disabled:bg-gray-400 flex items-center justify-center gap-1 sm:gap-2 shadow-sm text-sm sm:text-base flex-1 sm:flex-none"
@@ -603,6 +725,13 @@ export default function OrderManagementTab() {
                                         청구서
                                     </a>
                                     <button
+                                        onClick={() => handleSendAlimtalk(order, user?.name || '고객', user?.phone || '')}
+                                        disabled={sendingAlimtalk === order.id}
+                                        className="bg-yellow-100 text-yellow-800 px-1 py-0.5 sm:px-3 sm:py-1.5 rounded text-[10px] sm:text-sm font-bold hover:bg-yellow-200 disabled:opacity-50"
+                                    >
+                                        {sendingAlimtalk === order.id ? '발송중..' : '💬 알림톡'}
+                                    </button>
+                                    <button
                                         onClick={() => openEditModal(order)}
                                         className="bg-blue-100 text-blue-700 px-1 py-0.5 sm:px-3 sm:py-1.5 rounded text-[10px] sm:text-sm font-medium hover:bg-blue-200"
                                     >
@@ -661,6 +790,95 @@ export default function OrderManagementTab() {
                           className="px-4 py-2 bg-[#673ab7] text-white rounded font-bold hover:bg-[#5e35b1]"
                       >
                           저장 (Save)
+                      </button>
+                  </div>
+              </div>
+          </div>
+      )}
+
+      {/* Bulk Alimtalk Modal */}
+      {isBulkModalOpen && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+              <div className="bg-white p-6 rounded-lg max-w-3xl w-full max-h-[90vh] flex flex-col">
+                  <h3 className="text-xl font-bold mb-2">💬 일괄 알림톡 발송 ({Object.values(bulkSelection).filter(Boolean).length}명 선택됨)</h3>
+                  <p className="text-sm text-gray-500 mb-4">현재 목록(우측 상단의 필터 기준) 대상자입니다. 발송을 원치 않는 분은 체크를 해제하세요.</p>
+                  
+                  <div className="flex-1 overflow-y-auto mb-4 border border-gray-200 rounded p-2 bg-gray-50 min-h-[50vh]">
+                      <table className="w-full text-left text-sm">
+                          <thead className="border-b bg-gray-100">
+                              <tr>
+                                  <th className="p-2 w-10 text-center">
+                                      <input 
+                                          type="checkbox" 
+                                          checked={Object.values(bulkSelection).every(Boolean)}
+                                          onChange={(e) => {
+                                              const newSel = {...bulkSelection};
+                                              bulkTargets.forEach(t => newSel[t.id] = e.target.checked);
+                                              setBulkSelection(newSel);
+                                          }}
+                                          className="w-4 h-4 accent-yellow-500"
+                                      />
+                                  </th>
+                                  <th className="p-2">고객명</th>
+                                  <th className="p-2">연락처</th>
+                                  <th className="p-2 text-right">총 금액</th>
+                                  <th className="p-2 text-center">입금상태</th>
+                              </tr>
+                          </thead>
+                          <tbody>
+                              {bulkTargets.map(order => {
+                                  const user = users.find(u => u.phone === order.userId || u.nickname === order.userId);
+                                  return (
+                                      <tr key={order.id} className="border-b last:border-0 hover:bg-gray-100">
+                                          <td className="p-2 text-center">
+                                              <input 
+                                                  type="checkbox" 
+                                                  checked={!!bulkSelection[order.id]}
+                                                  onChange={(e) => setBulkSelection({...bulkSelection, [order.id]: e.target.checked})}
+                                                  className="w-4 h-4 accent-yellow-500 cursor-pointer"
+                                              />
+                                          </td>
+                                          <td className="p-2 font-bold">{user?.name || '미등록'}</td>
+                                          <td className="p-2 text-gray-600">{user?.phone || '번호없음'}</td>
+                                          <td className="p-2 text-right">{order.totalPrice.toLocaleString()}원</td>
+                                          <td className="p-2 text-center">
+                                              <span className={`text-xs px-2 py-1 rounded font-bold ${order.isPaid ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                                  {order.isPaid ? '완료' : '미입금'}
+                                              </span>
+                                          </td>
+                                      </tr>
+                                  );
+                              })}
+                          </tbody>
+                      </table>
+                  </div>
+
+                  {bulkProgress && (
+                      <div className="mb-4">
+                          <div className="w-full bg-gray-200 rounded-full h-2.5 mb-1">
+                              <div className="bg-yellow-400 h-2.5 rounded-full" style={{ width: `${(bulkProgress.current / bulkProgress.total) * 100}%` }}></div>
+                          </div>
+                          <div className="flex justify-between text-xs text-gray-500">
+                              <span>진행률: {bulkProgress.current} / {bulkProgress.total}</span>
+                              <span>성공: <span className="text-green-600 font-bold">{bulkProgress.successes}</span> | 실패: <span className="text-red-600 font-bold">{bulkProgress.fails}</span></span>
+                          </div>
+                      </div>
+                  )}
+
+                  <div className="flex justify-end gap-2">
+                      <button 
+                          onClick={() => setIsBulkModalOpen(false)}
+                          disabled={isBulkSending}
+                          className="px-4 py-2 text-gray-600 hover:bg-gray-200 rounded font-bold"
+                      >
+                          닫기
+                      </button>
+                      <button 
+                          onClick={handleBulkSend}
+                          disabled={isBulkSending || Object.values(bulkSelection).filter(Boolean).length === 0}
+                          className="px-4 py-2 bg-yellow-400 text-yellow-900 rounded font-bold hover:bg-yellow-500 disabled:opacity-50"
+                      >
+                          {isBulkSending ? '발송 중...' : '✔ 선택된 고객 발송'}
                       </button>
                   </div>
               </div>
