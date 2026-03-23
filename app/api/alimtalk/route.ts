@@ -28,21 +28,19 @@ export async function POST(request: Request) {
     const sender = '01062699612'; // Default to the one found in template
 
     const payload = {
-      messages: [
-        {
-          to: phone.replace(/[^0-9]/g, ''),
-          from: sender.replace(/[^0-9]/g, ''),
-          kakaoOptions: {
-            pfId: 'KA01PF260322065238965YVuAFG1cg51',
-            templateId: 'KA01TP260322181819347vhkcxBkG7G3',
-            variables: {
-              "#{이름}": name,
-              "#{총금액}": parseInt(totalPrice, 10).toLocaleString() + "원",
-              "#{청구서링크}": `${domainPart}/invoice/${orderId}`
-            }
+      message: {
+        to: phone.replace(/[^0-9]/g, ''),
+        from: sender.replace(/[^0-9]/g, ''),
+        kakaoOptions: {
+          pfId: 'KA01PF260322065238965YVuAFG1cg51',
+          templateId: 'KA01TP260322181819347vhkcxBkG7G3',
+          variables: {
+            "#{이름}": name,
+            "#{총금액}": parseInt(totalPrice, 10).toLocaleString() + "원",
+            "#{청구서링크}": `${domainPart}/invoice/${orderId}`
           }
         }
-      ]
+      }
     };
 
     const response = await fetch('https://api.solapi.com/messages/v4/send', {
