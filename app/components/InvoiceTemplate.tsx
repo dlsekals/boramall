@@ -68,7 +68,7 @@ export default function InvoiceTemplate({ data, hideButtons = false, customId }:
   const textColor = "text-[#311b92]";
 
   return (
-    <div id={elementId} className="bg-white max-w-2xl mx-auto shadow-lg relative min-h-[800px] flex flex-col">
+    <div id={elementId} className="bg-white max-w-2xl mx-auto shadow-lg relative min-h-[800px] flex flex-col overflow-hidden sm:overflow-visible">
       
       {/* Paid Stamp */}
       {data.isPaid && (
@@ -78,7 +78,7 @@ export default function InvoiceTemplate({ data, hideButtons = false, customId }:
       )}
 
       {/* Header */}
-      <div className="px-8 pt-6 pb-2 flex justify-between items-start border-b-2 border-transparent">
+      <div className="px-4 sm:px-8 pt-6 pb-2 flex justify-between items-start border-b-2 border-transparent">
         <div className="flex-1 flex items-center pt-2">
             {/* Logo: base64 properly background-stripped natively */}
             <img src={cleanLogo} alt="보라몰" className="h-28 lg:h-32 object-contain transform scale-110 origin-left" />
@@ -93,7 +93,7 @@ export default function InvoiceTemplate({ data, hideButtons = false, customId }:
       </div>
 
       {/* Addresses */}
-      <div className="grid grid-cols-2 gap-12 px-12 pb-4 pt-1">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-12 px-5 sm:px-12 pb-4 pt-4 sm:pt-1">
           <div>
               <h3 className={`font-bold text-[13px] mb-1.5 tracking-wider ${textColor}`}>판매자</h3>
               <div className={`h-0.5 w-full bg-[#311b92] opacity-20 mb-2`}></div>
@@ -129,7 +129,7 @@ export default function InvoiceTemplate({ data, hideButtons = false, customId }:
       </div>
 
       {/* Table */}
-      <div className="px-8 pb-3">
+      <div className="px-2 sm:px-8 pb-3 overflow-x-auto">
           <table className="w-full text-left border-collapse table-fixed mt-1">
             <thead>
               <tr className={`${themeColor} text-white`}>
@@ -160,7 +160,7 @@ export default function InvoiceTemplate({ data, hideButtons = false, customId }:
           </table>
           
           {/* Total Price Right Aligned */}
-          <div className="flex justify-end items-end mt-4 mb-2 pr-4">
+          <div className="flex justify-end items-end mt-4 mb-2 pr-2 sm:pr-4">
               <div className="flex flex-col items-end mr-3 mb-0.5">
                   <span className="font-extrabold text-gray-800 text-base">총금액</span>
                   <span className="text-[10px] font-bold text-gray-400 mt-[-2px]">(VAT 포함)</span>
@@ -177,20 +177,20 @@ export default function InvoiceTemplate({ data, hideButtons = false, customId }:
       <div className="flex-1"></div>
 
       {/* Footer / Payment Methods */}
-      <div className="bg-[#f9f9fb] w-full pt-6 pb-6 px-12 border-t border-gray-100 break-inside-avoid shadow-inner mt-auto">
-          <div className="flex items-start justify-between">
-              <div className="text-left flex-1 pr-4 pt-3">
+      <div className="bg-[#f9f9fb] w-full pt-6 pb-6 px-4 sm:px-12 border-t border-gray-100 break-inside-avoid shadow-inner mt-auto">
+          <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between gap-6 sm:gap-0">
+              <div className="text-center sm:text-left w-full sm:flex-1 sm:pr-4 pt-0 sm:pt-3">
                   <p className="text-[13px] font-bold text-[#ff5252] break-keep leading-snug mb-3">
-                    * 입금은 방송 다음날 오후 1시이전 미입금시<br/>
+                    * 입금은 방송 다음날 오후 1시이전 미입금시<br className="hidden sm:block"/>
                     주문이 자동 취소 됩니다.
                   </p>
                   <p className="text-[12px] font-bold text-gray-500 break-keep leading-snug">
-                    * 사업자 번호로 영수증 발행 원하실 경우,<br/>
+                    * 사업자 번호로 영수증 발행 원하실 경우,<br className="hidden sm:block"/>
                     따로 기입해 주시기 바랍니다.
                   </p>
               </div>
               
-              <div className="bg-white rounded border border-gray-200 shadow-sm w-[300px] flex flex-col items-center justify-center pt-2 pb-2 px-5 relative">
+              <div className="bg-white rounded border border-gray-200 shadow-sm w-full max-w-[300px] flex flex-col items-center justify-center pt-2 pb-2 px-5 relative mx-auto sm:mx-0">
                   <div className="font-extrabold text-[20px] text-[#4527a0] mb-1 tracking-wider leading-none">
                       입금하실 계좌
                   </div>
