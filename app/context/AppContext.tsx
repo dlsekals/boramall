@@ -25,6 +25,7 @@ export interface Product {
   isConsignment?: boolean; // 위탁 상품 여부
   vendorName?: string; // 업체명/발주처
   expirationDate?: string; // 유통기한 (YYYY-MM-DD)
+  onlineLowestPrice?: number; // 온라인 최저가
 }
 
 export interface OrderItem {
