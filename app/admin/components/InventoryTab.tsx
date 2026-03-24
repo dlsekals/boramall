@@ -16,7 +16,8 @@ export default function InventoryTab() {
     stock: '',
     isConsignment: false,
     vendorName: '',
-    expirationDate: ''
+    expirationDate: '',
+    onlineLowestPrice: ''
   });
 
   const handleAddProduct = (e: React.FormEvent) => {
@@ -33,11 +34,12 @@ export default function InventoryTab() {
       updatedAt: new Date().toISOString(),
       isConsignment: newProduct.isConsignment,
       vendorName: newProduct.isConsignment ? newProduct.vendorName : undefined,
-      expirationDate: newProduct.expirationDate || undefined
+      expirationDate: newProduct.expirationDate || undefined,
+      onlineLowestPrice: newProduct.onlineLowestPrice ? Number(newProduct.onlineLowestPrice) : undefined
     };
 
     addProduct(product);
-    setNewProduct({ name: '', price: '', purchasePrice: '', stock: '', isConsignment: false, vendorName: '', expirationDate: '' });
+    setNewProduct({ name: '', price: '', purchasePrice: '', stock: '', isConsignment: false, vendorName: '', expirationDate: '', onlineLowestPrice: '' });
   };
 
   // Search State
@@ -183,6 +185,7 @@ export default function InventoryTab() {
       { header: '재고', key: 'stock', width: 10 },
       { header: '합계금액(수식)', key: 'totalValue', width: 15 },
       { header: '유통기한', key: 'expirationDate', width: 15 },
+      { header: '온라인최저가', key: 'onlineLowestPrice', width: 15 },
       { header: '최근입고일', key: 'updatedAt', width: 15 }
     ];
 
@@ -197,6 +200,7 @@ export default function InventoryTab() {
         price: product.price || 0,
         stock: product.stock || 0,
         expirationDate: product.expirationDate || '-',
+        onlineLowestPrice: product.onlineLowestPrice || '-',
         updatedAt: product.updatedAt ? new Date(product.updatedAt).toLocaleDateString() : '-'
       });
 
@@ -296,6 +300,17 @@ export default function InventoryTab() {
                 onChange={(e) => setNewProduct({...newProduct, expirationDate: e.target.value.replace(/[^0-9]/g, '')})}
               />
             </div>
+            <div className="w-full sm:w-32">
+              <label className="block text-xs sm:text-sm text-gray-600 mb-0.5">온라인최저가</label>
+              <input
+                type="number"
+                step="100"
+                className="w-full border p-2 rounded bg-gray-50"
+                value={newProduct.onlineLowestPrice || ''}
+                onChange={(e) => setNewProduct({...newProduct, onlineLowestPrice: e.target.value})}
+                placeholder="0"
+              />
+            </div>
             <div className="w-full sm:w-24">
               <label className="block text-xs sm:text-sm text-gray-600 mb-0.5">재고</label>
               <input
@@ -369,11 +384,12 @@ export default function InventoryTab() {
               <col className="w-[18%]" />   {/* 상품명 */}
               <col className="w-[6%]" />  {/* 위탁 */}
               <col className="w-[13%]" />   {/* 입고일 */}
-              <col className="w-[13%]" />   {/* 유통기한 */}
-              <col className="w-[12%]" />   {/* 매입 */}
-              <col className="w-[12%]" />   {/* 판매 */}
+              <col className="w-[10%]" />   {/* 유통기한 */}
+              <col className="w-[10%]" />   {/* 온라인최저가 */}
+              <col className="w-[10%]" />   {/* 매입 */}
+              <col className="w-[10%]" />   {/* 판매 */}
               <col className="w-[9%]" />    {/* 마진 */}
-              <col className="w-[8%]" />    {/* 재고 */}
+              <col className="w-[5%]" />    {/* 재고 */}
               <col className="w-[5%]" />    {/* 삭제 */}
             </colgroup>
             <thead className="bg-gray-50 text-gray-500 font-medium border-b">
@@ -416,6 +432,7 @@ export default function InventoryTab() {
                     유통기한 {sortConfig.key === 'expirationDate' && (sortConfig.direction === 'asc' ? '▲' : '▼')}
                     {sortConfig.key !== 'expirationDate' && <span className="text-gray-300">↕</span>}
                 </th>
+                <th className="px-2 align-middle text-right whitespace-nowrap">최저가</th>
                 <th className="px-2 align-middle text-right whitespace-nowrap">매입</th>
                 <th className="px-2 align-middle text-right whitespace-nowrap">판매</th>
                 <th className="px-2 align-middle text-right whitespace-nowrap">마진</th>
@@ -518,6 +535,20 @@ export default function InventoryTab() {
                                   return <span className={`text-[10px] font-bold ${colorStr}`}>{dDayStr}</span>;
                               })()}
                           </div>
+                      </td>
+                      <td className="px-2 align-middle">
+                         <div className="flex items-center gap-0.5 justify-end">
+                            <input 
+                                type="number" 
+                                step="10"
+                                value={product.onlineLowestPrice || ''}
+                                onChange={(e) => updateProduct({...product, onlineLowestPrice: Number(e.target.value) || undefined})}
+                                onFocus={() => startEditing(product.id)}
+                                onBlur={() => stopEditing()}
+                                className="w-full bg-transparent border-none focus:ring-1 focus:ring-orange-500 text-orange-600 rounded p-0.5 text-right font-bold text-[11px]"
+                                placeholder="최저가"
+                            />
+                        </div>
                       </td>
                       <td className="px-2 align-middle">
                          <div className="flex items-center gap-0.5 justify-end">

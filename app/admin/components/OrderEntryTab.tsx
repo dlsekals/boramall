@@ -261,7 +261,7 @@ export default function OrderEntryTab({ initialProductId }: OrderEntryTabProps) 
 
   const handleCopyProductInfo = (e: React.MouseEvent, p: Product) => {
       e.stopPropagation();
-      const text = `🔥 ${p.name} 초특가 ${p.price}원!! 🔥 ${p.stock}개 한정.`;
+      const text = `[${p.name}] 🔥보라몰 회원가 ${p.price}원🔥  ${p.stock}개 한정${p.onlineLowestPrice ? `  [온라인 최저가 ${p.onlineLowestPrice}원]` : ''}`;
       
       if (navigator.clipboard && window.isSecureContext) {
           navigator.clipboard.writeText(text).then(() => {
@@ -841,6 +841,7 @@ export default function OrderEntryTab({ initialProductId }: OrderEntryTabProps) 
                                         <span>{p.name}</span>
                                         <span className={`text-xs ${isUnavailable ? 'text-gray-400' : 'text-gray-500'} font-normal`}>({isMissingPrice ? '가격 미정' : p.price.toLocaleString() + '원'})</span>
                                         {p.expirationDate && <span className="text-xs font-bold text-blue-600 hidden sm:inline-block ml-1">({formatExpDate(p.expirationDate)})</span>}
+                                        {p.onlineLowestPrice && <span className="text-xs font-bold text-orange-600 hidden sm:inline-block ml-1">[최저가 {p.onlineLowestPrice.toLocaleString()}원]</span>}
                                     </span>
                                     <div className="flex items-center gap-2 shrink-0">
                                         <span className={`text-xs sm:text-sm ${isMissingPrice ? 'text-red-500 font-bold' : p.stock <= 0 ? 'text-red-400 font-bold' : 'text-emerald-600 font-medium'}`}>
@@ -902,6 +903,15 @@ export default function OrderEntryTab({ initialProductId }: OrderEntryTabProps) 
                                     <span className="text-sm font-bold text-gray-700">유통기한:</span>
                                     <span className="text-sm font-bold text-blue-600">
                                         {formatExpDate(selectedP.expirationDate)}
+                                    </span>
+                                </div>
+                            )}
+
+                            {selectedP.onlineLowestPrice && (
+                                <div className="flex items-center gap-1 border-l border-indigo-200 pl-4">
+                                    <span className="text-sm font-bold text-gray-700">최저가:</span>
+                                    <span className="text-sm font-bold text-orange-600">
+                                        {selectedP.onlineLowestPrice.toLocaleString()}원
                                     </span>
                                 </div>
                             )}
@@ -1244,6 +1254,7 @@ export default function OrderEntryTab({ initialProductId }: OrderEntryTabProps) 
                                                 <span>{p.name}</span>
                                                 <span className={`text-xs ${p.stock <= 0 ? 'text-gray-400' : 'text-gray-500'} font-normal`}>({p.price.toLocaleString()}원)</span>
                                                 {p.expirationDate && <span className="text-xs font-bold text-blue-600 hidden sm:inline-block ml-1">({formatExpDate(p.expirationDate)})</span>}
+                                                {p.onlineLowestPrice && <span className="text-xs font-bold text-orange-600 hidden sm:inline-block ml-1">[최저가 {p.onlineLowestPrice.toLocaleString()}원]</span>}
                                             </span>
                                             <span className={`text-xs sm:text-sm shrink-0 ${p.stock <= 0 ? 'text-red-400 font-bold' : 'text-emerald-600 font-medium'}`}>
                                                 {p.stock <= 0 ? '품절' : `재고: ${p.stock}개`}
@@ -1295,6 +1306,15 @@ export default function OrderEntryTab({ initialProductId }: OrderEntryTabProps) 
                                     <span className="text-sm font-bold text-gray-700">유통기한:</span>
                                     <span className="text-sm font-bold text-blue-600">
                                         {formatExpDate(selectedP.expirationDate)}
+                                    </span>
+                                </div>
+                            )}
+
+                            {selectedP.onlineLowestPrice && (
+                                <div className="flex items-center gap-1 border-l border-indigo-200 pl-4">
+                                    <span className="text-sm font-bold text-gray-700">최저가:</span>
+                                    <span className="text-sm font-bold text-orange-600">
+                                        {selectedP.onlineLowestPrice.toLocaleString()}원
                                     </span>
                                 </div>
                             )}
