@@ -80,6 +80,7 @@ interface AppContextType {
   updateOrder: (orderId: string, updatedItems: OrderItem[]) => void;
   deleteOrder: (orderId: string) => void;
   mergeDuplicateOrders: () => { success: boolean; message: string };
+  addBulkShippingFee: (orderIds: string[]) => void;
   
   // Delivery & Post-Purchase Actions
   updateDeliveryStatus: (orderId: string, status: '배송준비중' | '배송중' | '배송완료' | '취소완료' | '반품요청' | '반품완료' | '교환요청' | '교환완료') => void;
@@ -436,6 +437,29 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setOrders(newOrders);
   };
 
+  const addBulkShippingFee = (orderIds: string[]) => {
+      setOrders(prev => prev.map(o => {
+          if (!orderIds.includes(o.id)) return o;
+          
+          const hasFee = o.items.some(i => i.productName === '일괄 택배비');
+          if (hasFee) return o;
+          
+          const newItems = [...o.items, {
+              productName: "일괄 택배비",
+              price: 4000,
+              quantity: 1,
+              purchasePrice: 0,
+              isConsignment: false
+          }];
+          
+          return {
+              ...o,
+              items: newItems,
+              totalPrice: o.totalPrice + 4000
+          };
+      }));
+  };
+
   const deleteOrder = (orderId: string) => {
     const orderIndex = orders.findIndex(o => o.id === orderId);
     if (orderIndex === -1) return;
@@ -627,7 +651,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       toggleProductActive,
       toggleAllProductsActive,
       
-      createOrder, markOrderPaid, updateOrder, deleteOrder, mergeDuplicateOrders,
+      createOrder, markOrderPaid, updateOrder, deleteOrder, mergeDuplicateOrders, addBulkShippingFee,
       updateDeliveryStatus, updateTrackingNumber, bulkUpdateTracking, markOrdersAsExported, processOrderCancellation,
       resetOrders, archiveOrders, refreshOrders, refreshProducts, refreshUsers
     }}>

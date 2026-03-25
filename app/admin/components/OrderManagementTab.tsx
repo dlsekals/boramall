@@ -8,7 +8,7 @@ import { useApp, Order, OrderItem } from '../../context/AppContext';
 import InvoiceTemplate, { InvoiceData } from '../../components/InvoiceTemplate';
 
 export default function OrderManagementTab() {
-  const { orders, users, markOrderPaid, updateOrder, deleteOrder, mergeDuplicateOrders, markOrdersAsExported } = useApp();
+  const { products, orders, users, markOrderPaid, updateOrder, deleteOrder, mergeDuplicateOrders, markOrdersAsExported, addBulkShippingFee } = useApp();
   const [filterUnpaid, setFilterUnpaid] = useState(false);
   const [downloadFilter, setDownloadFilter] = useState<'all' | 'paid'>('all'); // Add download filter state
   const [filterOnlyPreparing, setFilterOnlyPreparing] = useState(false);
@@ -93,16 +93,7 @@ export default function OrderManagementTab() {
       
       if (!confirm(`현재 보고 계신 목록의 미입금 주문 중, 택배비가 청구되지 않은 총 ${ordersWithoutShipping.length}건에 대해 각각 4,000원의 일괄 택배비를 추가하시겠습니까?`)) return;
 
-      ordersWithoutShipping.forEach(order => {
-         const newItems = [...order.items, {
-             productName: "일괄 택배비",
-             price: 4000,
-             quantity: 1,
-             purchasePrice: 0,
-             isConsignment: false
-         }];
-         updateOrder(order.id, newItems);
-      });
+      addBulkShippingFee(ordersWithoutShipping.map(o => o.id));
       
       alert(`${ordersWithoutShipping.length}건의 주문에 일괄 택배비 4,000원이 추가되었습니다.`);
   };
@@ -468,6 +459,20 @@ export default function OrderManagementTab() {
 
   const paidRate = totalRevenue > 0 ? ((paidTotal / totalRevenue) * 100).toFixed(1) : '0.0';
 
+  // Calculate Net Profit globally across activeOrders
+  let totalCost = 0;
+  activeOrders.forEach(order => {
+      order.items.forEach(item => {
+          let itemCost = item.purchasePrice;
+          if (itemCost === undefined || itemCost === 0) {
+              const currentProduct = products.find(p => p.name === item.productName);
+              itemCost = currentProduct?.purchasePrice || 0;
+          }
+          totalCost += itemCost * item.quantity;
+      });
+  });
+  const totalProfit = totalRevenue - totalCost;
+
   return (
     <div className="space-y-6">
       
@@ -480,6 +485,13 @@ export default function OrderManagementTab() {
               </p>
           </div>
           
+          <div className="bg-white p-4 rounded shadow-sm border-l-4 border-blue-500">
+              <h2 className="text-gray-500 text-sm font-medium mb-1">총 예상 순이익</h2>
+              <p className="text-2xl font-bold text-blue-600">
+                  {totalProfit.toLocaleString()}원
+              </p>
+          </div>
+
           <div className="bg-white p-4 rounded shadow-sm border-l-4 border-green-500 relative">
               <h2 className="text-gray-500 text-sm font-medium mb-1">총 입금액 (총 {paidCount}건)</h2>
               <p className="text-2xl font-bold text-green-600">
