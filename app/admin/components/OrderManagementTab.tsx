@@ -663,7 +663,7 @@ export default function OrderManagementTab() {
                                     </span>
                                 </td>
                                 <td className="py-0.5 px-1 sm:py-1 sm:px-4 whitespace-nowrap min-w-[100px]">
-                                    <div className="flex flex-col">
+                                    <div className="flex flex-col min-h-[52px] sm:min-h-[64px] justify-center">
                                         <div>
                                             <span className="font-bold">{user?.name || '미등록'}</span>
                                             <span className="text-xs sm:text-sm text-gray-500 ml-1">({user?.nickname || order.userId})</span>
