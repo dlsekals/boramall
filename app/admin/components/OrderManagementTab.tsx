@@ -145,7 +145,18 @@ export default function OrderManagementTab() {
                 // Prevent duplicate DOM cache bug by using the dual-render pass
                 await toPng(el, { cacheBust: true });
                 await new Promise(r => setTimeout(r, 50));
-                const dataUrl = await toPng(el, { 
+                
+                const wrapper = document.createElement('div');
+                wrapper.style.position = 'absolute';
+                wrapper.style.top = '-9999px';
+                wrapper.style.left = '-9999px';
+                wrapper.style.width = '672px';
+                document.body.appendChild(wrapper);
+                
+                const clone = el.cloneNode(true) as HTMLElement;
+                wrapper.appendChild(clone);
+
+                const dataUrl = await toPng(clone, { 
                     cacheBust: true, 
                     pixelRatio: 2, 
                     backgroundColor: '#ffffff', 
@@ -153,6 +164,8 @@ export default function OrderManagementTab() {
                     width: 672, 
                     height: el.scrollHeight 
                 });
+                
+                document.body.removeChild(wrapper);
                 const base64Data = dataUrl.split(',')[1];
                 const user = users.find(u => u.phone === order.userId || u.nickname === order.userId);
                 const displayId = user?.nickname || order.userId;

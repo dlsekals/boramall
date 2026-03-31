@@ -22,15 +22,26 @@ export default function DynamicInvoicePage() {
       // First pass to warm up cache (prevents blank/stale render)
       await toPng(element, { cacheBust: true });
       await new Promise(r => setTimeout(r, 100));
-      // Second pass with natural dimensions and margin reset to prevent clipping
-      const dataUrl = await toPng(element, {
+      const wrapper = document.createElement('div');
+      wrapper.style.position = 'absolute';
+      wrapper.style.top = '-9999px';
+      wrapper.style.left = '-9999px';
+      wrapper.style.width = '672px';
+      document.body.appendChild(wrapper);
+      
+      const clone = element.cloneNode(true) as HTMLElement;
+      wrapper.appendChild(clone);
+
+      const dataUrl = await toPng(clone, {
         cacheBust: true,
         pixelRatio: 2,
         backgroundColor: '#ffffff',
         width: 672,
         height: element.offsetHeight,
-        style: { margin: '0', transform: 'scale(1)', transformOrigin: 'top left', width: '672px' },
+        style: { margin: '0', transform: 'scale(1)', transformOrigin: 'top left', width: '672px', minWidth: '672px' },
       });
+      
+      document.body.removeChild(wrapper);
       const link = document.createElement('a');
       link.href = dataUrl;
       link.download = `보라몰_청구서.png`;
