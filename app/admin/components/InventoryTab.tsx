@@ -365,7 +365,7 @@ export default function InventoryTab() {
                     />
                     <span className="text-sm font-bold text-purple-700">🚚 위탁상품만 보기</span>
                 </label>
-                <div className="flex items-center gap-2 border rounded p-2 bg-gray-50 flex-1 sm:flex-none">
+                <div className="flex items-center gap-2 border rounded p-2 bg-gray-50 flex-1 sm:flex-none w-full sm:w-auto mt-2 sm:mt-0 min-w-[150px]">
                     <span>🔍</span>
                     <input 
                         type="text" 

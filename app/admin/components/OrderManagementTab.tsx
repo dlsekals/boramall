@@ -8,11 +8,12 @@ import { useApp, Order, OrderItem } from '../../context/AppContext';
 import InvoiceTemplate, { InvoiceData } from '../../components/InvoiceTemplate';
 
 export default function OrderManagementTab() {
-  const { products, orders, users, markOrderPaid, updateOrder, deleteOrder, mergeDuplicateOrders, markOrdersAsExported, addBulkShippingFee } = useApp();
+  const { products, orders, users, markOrderPaid, updateOrder, deleteOrder, mergeDuplicateOrders, mergeSelectiveOrders, markOrdersAsExported, addBulkShippingFee, updateOrderShippingAddress } = useApp();
   const [filterUnpaid, setFilterUnpaid] = useState(false);
   const [downloadFilter, setDownloadFilter] = useState<'all' | 'paid'>('all'); // Add download filter state
   const [filterOnlyPreparing, setFilterOnlyPreparing] = useState(false);
   const [filterOnlyNotExported, setFilterOnlyNotExported] = useState(true); // 기본적으로 안 뽑은 것만
+  const [showArchived, setShowArchived] = useState(false); // 보관함 보기 상태
   const [sortOrder, setSortOrder] = useState<'date_desc' | 'price_desc' | 'price_asc'>('date_desc');
   const [searchQuery, setSearchQuery] = useState('');
   
@@ -37,8 +38,8 @@ export default function OrderManagementTab() {
       setExpandedOrders(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
-  // Hide physically archived orders from the active list
-  const activeOrders = orders.filter(o => !o.isArchived);
+  // Conditionally hide physically archived orders from the active list
+  const activeOrders = showArchived ? orders : orders.filter(o => !o.isArchived);
 
   // Sorting logic based on sortOrder state
   const sortedOrders = [...activeOrders].sort((a, b) => {
@@ -60,7 +61,8 @@ export default function OrderManagementTab() {
     const term = searchQuery.toLowerCase();
     const matchName = user?.name?.toLowerCase().includes(term);
     const matchNick = user?.nickname?.toLowerCase().includes(term);
-    return matchName || matchNick;
+    const matchPhone = user?.phone?.includes(term);
+    return matchName || matchNick || matchPhone;
   });
 
   // Group orders purely for visual list display.
@@ -96,6 +98,23 @@ export default function OrderManagementTab() {
       addBulkShippingFee(ordersWithoutShipping.map(o => o.id));
       
       alert(`${ordersWithoutShipping.length}건의 주문에 일괄 택배비 4,000원이 추가되었습니다.`);
+  };
+
+  const [selectedOrdersForMerge, setSelectedOrdersForMerge] = useState<Record<string, boolean>>({});
+  const handleToggleMergeSelection = (orderId: string) => {
+      setSelectedOrdersForMerge(prev => ({ ...prev, [orderId]: !prev[orderId] }));
+  };
+  const handleSelectiveMerge = () => {
+      const selectedIds = Object.keys(selectedOrdersForMerge).filter(id => selectedOrdersForMerge[id]);
+      if (selectedIds.length < 2) {
+          alert('합배송할 기준 건을 2개 이상 좌측 체크박스에서 선택해주세요.');
+          return;
+      }
+      const result = mergeSelectiveOrders(selectedIds);
+      alert(result.message);
+      if (result.success) {
+          setSelectedOrdersForMerge({});
+      }
   };
 
   const handleBulkDownload = async () => {
@@ -527,6 +546,16 @@ export default function OrderManagementTab() {
             <label className="flex items-center gap-2 cursor-pointer select-none">
                 <input 
                     type="checkbox" 
+                    checked={showArchived} 
+                    onChange={(e) => setShowArchived(e.target.checked)}
+                    className="w-5 h-5 accent-gray-500"
+                />
+                <span className="font-bold text-gray-700 whitespace-nowrap">📦 보관함 포함</span>
+            </label>
+            <div className="h-4 sm:h-6 w-px bg-gray-300 mx-1 hidden sm:block"></div>
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+                <input 
+                    type="checkbox" 
                     checked={filterOnlyPreparing} 
                     onChange={(e) => setFilterOnlyPreparing(e.target.checked)}
                     className="w-5 h-5 accent-blue-500"
@@ -583,6 +612,12 @@ export default function OrderManagementTab() {
                 className="bg-orange-100 text-orange-700 font-bold px-3 py-2 sm:px-4 rounded hover:bg-orange-200 border border-orange-200 shadow-sm flex items-center justify-center gap-1 sm:gap-2 text-sm sm:text-base flex-1 sm:flex-none"
             >
                 🔄 동일인 합치기
+            </button>
+            <button 
+                onClick={handleSelectiveMerge}
+                className="bg-purple-100 text-purple-700 font-bold px-3 py-2 sm:px-4 rounded hover:bg-purple-200 border border-purple-200 shadow-sm flex items-center justify-center gap-1 sm:gap-2 text-sm sm:text-base flex-1 sm:flex-none"
+            >
+                🔗 선택 합배송
             </button>
             <button 
                 onClick={handleConsignmentExport}
@@ -658,9 +693,12 @@ export default function OrderManagementTab() {
                         return (
                             <tr key={order.id} className={`${order.isPaid ? 'bg-green-50' : 'bg-white'} ${isConsecutiveSameUser ? 'border-t-0 bg-gray-50/50' : ''} hover:bg-gray-50 transition-colors`}>
                                 <td className="py-0.5 px-1 sm:py-1 sm:px-4 text-center">
-                                    <span className={`px-1 py-0.5 sm:px-3 sm:py-0.5 rounded text-[10px] sm:text-sm font-bold whitespace-nowrap ${order.isPaid ? 'bg-green-200 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
-                                        {order.isPaid ? '완료' : '대기'}
-                                    </span>
+                                    <div className="flex items-center justify-center gap-1.5 flex-col sm:flex-row">
+                                        <input type="checkbox" className="w-4 h-4 accent-purple-600 cursor-pointer" checked={!!selectedOrdersForMerge[order.id]} onChange={() => handleToggleMergeSelection(order.id)} title="선택 합배송용" />
+                                        <span className={`px-1 py-0.5 sm:px-3 sm:py-0.5 rounded text-[10px] sm:text-sm font-bold whitespace-nowrap ${order.isPaid ? 'bg-green-200 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                                            {order.isPaid ? '완료' : '대기'}
+                                        </span>
+                                    </div>
                                 </td>
                                 <td className="py-0.5 px-1 sm:py-1 sm:px-4 whitespace-nowrap min-w-[100px]">
                                     <div className="flex flex-col min-h-[52px] sm:min-h-[64px] justify-center">
@@ -676,8 +714,15 @@ export default function OrderManagementTab() {
                                             )}
                                             {/* Display Order Date right below the name */}
                                             <span className="text-[10px] sm:text-xs text-blue-600 font-medium border-l border-gray-300 pl-2 h-3 leading-3 flex items-center">
-                                               구매일: {order.createdAt?.split(' ')[0] || '-'}
+                                               구매일: {order.createdAt?.split('오전')[0].split('오후')[0].trim() || '-'}
                                             </span>
+                                        </div>
+                                        <div className="text-[10px] sm:text-[11px] text-gray-500 mt-1 flex flex-wrap items-center gap-1 leading-tight w-full max-w-[200px] sm:max-w-[300px]" style={{ whiteSpace: 'normal', wordBreak: 'keep-all' }}>
+                                           🏠 {order.shippingAddress || user?.address || '주소 미등록'}
+                                           <button onClick={() => {
+                                               const newAddr = prompt('이 주문건에만 적용할 일회성 발송 주소를 입력하세요. (비워두면 기본 배송지로 복구)', order.shippingAddress || '');
+                                               if (newAddr !== null) updateOrderShippingAddress(order.id, newAddr);
+                                           }} className="text-blue-500 hover:text-blue-700 font-medium whitespace-nowrap border border-blue-200 px-1 rounded bg-blue-50 ml-1">배송지 변경</button>
                                         </div>
                                         {order.isPaid && (
                                             <div className="flex flex-wrap items-center gap-1 mt-1">
@@ -908,8 +953,8 @@ export default function OrderManagementTab() {
                 customerName: user.name,
                 customerPhone: user.phone,
                 customerNickname: user.nickname,
-                address: user.address,
-                date: order.createdAt,
+                address: order.shippingAddress || user.address || "",
+                date: order.createdAt?.split('오전')[0].split('오후')[0].trim() || order.createdAt,
                 items: order.items.map(i => ({
                     name: i.productName, quantity: i.quantity, price: i.price
                 })),

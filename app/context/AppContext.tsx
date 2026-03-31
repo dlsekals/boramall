@@ -48,6 +48,7 @@ export interface Order {
   deliveryStatus?: '배송준비중' | '배송중' | '배송완료' | '취소완료' | '반품요청' | '반품완료' | '교환요청' | '교환완료';
   isExportedToExcel?: boolean; // 롯데택배 엑셀로 추출되었는지 여부
   isArchived?: boolean;
+  shippingAddress?: string; // 일회성 배송지 변경용
 }
 
 
@@ -80,11 +81,13 @@ interface AppContextType {
   updateOrder: (orderId: string, updatedItems: OrderItem[]) => void;
   deleteOrder: (orderId: string) => void;
   mergeDuplicateOrders: () => { success: boolean; message: string };
+  mergeSelectiveOrders: (orderIds: string[]) => { success: boolean; message: string };
   addBulkShippingFee: (orderIds: string[]) => void;
   
   // Delivery & Post-Purchase Actions
   updateDeliveryStatus: (orderId: string, status: '배송준비중' | '배송중' | '배송완료' | '취소완료' | '반품요청' | '반품완료' | '교환요청' | '교환완료') => void;
   updateTrackingNumber: (orderId: string, trackingNumber: string) => void;
+  updateOrderShippingAddress: (orderId: string, address: string) => void;
   bulkUpdateTracking: (mappingData: { orderId: string; trackingNumber: string }[]) => { success: number; failed: number };
   markOrdersAsExported: (orderIds: string[]) => void;
   processOrderCancellation: (orderId: string, newStatus: '취소완료' | '반품요청' | '반품완료' | '교환요청' | '교환완료', restoreStock: boolean) => void;
@@ -550,6 +553,62 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       };
   };
 
+  const mergeSelectiveOrders = (orderIds: string[]) => {
+      if (orderIds.length < 2) return { success: false, message: "2개 이상의 주문을 선택해주세요." };
+      
+      const newOrders = [...orders];
+      const selectedOrders = newOrders.filter(o => orderIds.includes(o.id));
+      
+      if (selectedOrders.length !== orderIds.length) {
+          return { success: false, message: "일부 주문을 찾을 수 없습니다." };
+      }
+      
+      const firstUserId = selectedOrders[0].userId;
+      if (selectedOrders.some(o => o.userId !== firstUserId)) {
+          return { success: false, message: "선택한 주문들의 주문자가 동일하지 않습니다. 같은 사람의 주문만 병합할 수 있습니다." };
+      }
+      
+      selectedOrders.sort((a, b) => a.id.localeCompare(b.id)); // Oldest first
+      const baseOrder = selectedOrders[0];
+      let combinedTotalPrice = baseOrder.totalPrice;
+      const combinedItems: OrderItem[] = baseOrder.items.map(item => ({...item}));
+      
+      for (let i = 1; i < selectedOrders.length; i++) {
+          const orderToMerge = selectedOrders[i];
+          combinedTotalPrice += orderToMerge.totalPrice;
+          
+          orderToMerge.items.forEach(itemToMerge => {
+              const existingItemIdx = combinedItems.findIndex(i => i.productName === itemToMerge.productName);
+              if (existingItemIdx > -1) {
+                  combinedItems[existingItemIdx].quantity += itemToMerge.quantity;
+              } else {
+                  combinedItems.push({...itemToMerge});
+              }
+          });
+          
+          const indexToRemove = newOrders.findIndex(o => o.id === orderToMerge.id);
+          if (indexToRemove > -1) {
+              newOrders.splice(indexToRemove, 1);
+          }
+      }
+      
+      const baseIndex = newOrders.findIndex(o => o.id === baseOrder.id);
+      if (baseIndex > -1) {
+         newOrders[baseIndex] = {
+             ...baseOrder,
+             totalPrice: combinedTotalPrice,
+             items: combinedItems
+         };
+      }
+      
+      setOrders(newOrders);
+      return { success: true, message: `${selectedOrders.length}건의 주문이 1장으로 합쳐졌습니다.` };
+  };
+
+  const updateOrderShippingAddress = (orderId: string, address: string) => {
+      setOrders(prev => prev.map(o => o.id === orderId ? { ...o, shippingAddress: address } : o));
+  };
+
   const updateDeliveryStatus = (orderId: string, status: '배송준비중' | '배송중' | '배송완료' | '취소완료' | '반품요청' | '반품완료' | '교환요청' | '교환완료') => {
       setOrders(prev => prev.map(o => o.id === orderId ? { ...o, deliveryStatus: status } : o));
   };
@@ -651,8 +710,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       toggleProductActive,
       toggleAllProductsActive,
       
-      createOrder, markOrderPaid, updateOrder, deleteOrder, mergeDuplicateOrders, addBulkShippingFee,
-      updateDeliveryStatus, updateTrackingNumber, bulkUpdateTracking, markOrdersAsExported, processOrderCancellation,
+      createOrder, markOrderPaid, updateOrder, deleteOrder, mergeDuplicateOrders, mergeSelectiveOrders, addBulkShippingFee,
+      updateDeliveryStatus, updateTrackingNumber, updateOrderShippingAddress, bulkUpdateTracking, markOrdersAsExported, processOrderCancellation,
       resetOrders, archiveOrders, refreshOrders, refreshProducts, refreshUsers
     }}>
       {children}

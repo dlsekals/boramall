@@ -44,6 +44,7 @@ model Order {
   isPaid            Boolean     @default(false)
   trackingNumber    String?
   deliveryStatus    String?
+  shippingAddress   String?
   isExportedToExcel Boolean     @default(false)
   isArchived        Boolean     @default(false)
 }
