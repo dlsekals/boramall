@@ -296,6 +296,9 @@ export default function OrderManagementTab() {
               productName += ` 외 ${normalItems.length - 1}건`;
           }
 
+          const rawAddress = order.shippingAddress || user?.address || "";
+          const cleanAddress = rawAddress.replace(/^\[.*?\]\s*/, "").trim();
+
           const row = [
               orderNum++,               // A: 주문번호
               "보라몰",                   // B: 보내는사람(지정)
@@ -307,7 +310,7 @@ export default function OrderManagementTab() {
               user?.phone || "",        // H: 전화번호1
               "",                       // I: 전화번호2
               "",                       // J: 우편번호
-              order.shippingAddress || user?.address || "",      // K: 주소
+              cleanAddress,             // K: 주소
               productName,              // L: 상품명1
               "",                       // M: 상품상세1
               1,                        // N: 수량(A타입) - 빈칸 시 롯데택배 시스템 오류 발생하므로 기본값 1 입력 (어차피 내품 수량이 아님)
