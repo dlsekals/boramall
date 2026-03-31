@@ -27,7 +27,9 @@ export default function DynamicInvoicePage() {
         cacheBust: true,
         pixelRatio: 2,
         backgroundColor: '#ffffff',
-        style: { margin: '0', transform: 'scale(1)', transformOrigin: 'top left' },
+        width: 672,
+        height: element.offsetHeight,
+        style: { margin: '0', transform: 'scale(1)', transformOrigin: 'top left', width: '672px' },
       });
       const link = document.createElement('a');
       link.href = dataUrl;

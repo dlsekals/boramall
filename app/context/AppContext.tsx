@@ -605,8 +605,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       return { success: true, message: `${selectedOrders.length}건의 주문이 1장으로 합쳐졌습니다.` };
   };
 
-  const updateOrderShippingAddress = (orderId: string, address: string) => {
-      setOrders(prev => prev.map(o => o.id === orderId ? { ...o, shippingAddress: address } : o));
+  const updateOrderShippingAddress = async (orderId: string, address: string) => {
+      const targetOrder = orders.find(o => o.id === orderId);
+      if (!targetOrder) return;
+      const updatedOrder = { ...targetOrder, shippingAddress: address };
+      
+      setOrders(prev => prev.map(o => o.id === orderId ? updatedOrder : o));
+      
+      try {
+          await fetch('/api/orders', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(updatedOrder)
+          });
+      } catch (e) { 
+          console.error("Failed to update shipping address DB", e); 
+      }
   };
 
   const updateDeliveryStatus = (orderId: string, status: '배송준비중' | '배송중' | '배송완료' | '취소완료' | '반품요청' | '반품완료' | '교환요청' | '교환완료') => {

@@ -43,12 +43,27 @@ export default function DashboardTab() {
 
 
 
+  // Helper to parse Korean date string "2026. 03. 31. 오전 10:15:30" safely
+  const parseKoreanDate = (dateStr: string) => {
+      if (!dateStr) return new Date();
+      const parts = dateStr.split('.');
+      if (parts.length >= 3) {
+          const year = parseInt(parts[0].trim());
+          const month = parseInt(parts[1].trim()) - 1;
+          const day = parseInt(parts[2].trim());
+          const d = new Date(year, month, day, 12, 0, 0); // Default to noon
+          if (!isNaN(d.getTime())) return d;
+      }
+      const fallback = new Date(dateStr);
+      return isNaN(fallback.getTime()) ? new Date() : fallback;
+  };
+
   // Merge live DB orders (which now include both active and archived orders)
   const combinedArchives = useMemo(() => {
       const map: Record<string, Order[]> = {};
       
       orders.forEach(o => {
-          const d = new Date(o.createdAt);
+          const d = parseKoreanDate(o.createdAt);
           const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}T12:00:00Z`;
           if (!map[key]) map[key] = [];
           if (!map[key].find(existing => existing.id === o.id)) {

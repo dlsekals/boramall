@@ -163,7 +163,7 @@ export default function UserManagementTab() {
             </label>
         </div>
         
-        <div className="flex items-center gap-4 w-full sm:w-auto">
+        <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto mt-4 sm:mt-0">
             <div className="flex items-center gap-2 w-full sm:max-w-md bg-gray-50 p-2 rounded border flex-1">
               <span className="text-xl">🔍</span>
               <input 
