@@ -709,8 +709,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (archive && orders.length > 0) {
         await archiveOrders();
     }
-    setOrders([]);
-    // Note: We do NOT reset stock here by default, as requested.
+    await refreshOrders();
+    alert("현재 활성화된 주문들이 보관함으로 이동되었습니다.");
   };
 
   return (

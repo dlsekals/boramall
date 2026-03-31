@@ -86,7 +86,7 @@ export default function DynamicInvoicePage() {
       customerName: user.name, // Real name
       customerPhone: user.phone,
       customerNickname: user.nickname,
-      address: user.address,
+      address: order.shippingAddress || user.address,
       date: order.createdAt,
       items: order.items.map(i => ({
           name: i.productName,

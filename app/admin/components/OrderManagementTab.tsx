@@ -213,7 +213,7 @@ export default function OrderManagementTab() {
                       '수취인명': user?.name || '',
                       '전화번호': user?.phone || '',
                       '회원번호(닉네임)': user?.nickname || '',
-                      '배송주소': user?.address || '',
+                      '배송주소': order.shippingAddress || user?.address || '',
                       '상품명': item.productName,
                       '수량': item.quantity,
                       '주문일시': order.createdAt,
@@ -306,8 +306,8 @@ export default function OrderManagementTab() {
               user?.name || "",         // G: 받는사람
               user?.phone || "",        // H: 전화번호1
               "",                       // I: 전화번호2
-              "",                       // J: 우편번호 (일단 빈칸으로 둠 - 주소에 통계)
-              user?.address || "",      // K: 주소
+              "",                       // J: 우편번호
+              order.shippingAddress || user?.address || "",      // K: 주소
               productName,              // L: 상품명1
               "",                       // M: 상품상세1
               1,                        // N: 수량(A타입) - 빈칸 시 롯데택배 시스템 오류 발생하므로 기본값 1 입력 (어차피 내품 수량이 아님)
