@@ -165,6 +165,33 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
     };
     fetchData();
+
+    // 회원가입 실시간 반영을 위한 5초 단위의 Polling 처리 추가
+    const interval = setInterval(async () => {
+        try {
+            const usersRes = await fetch('/api/users').then(res => res.json());
+            if (Array.isArray(usersRes)) {
+                setUsers(prevUsers => {
+                    let hasChanges = false;
+                    const merged = [...prevUsers];
+                    
+                    // Add purely new users to prevent overwriting active edits
+                    usersRes.forEach(u => {
+                        if (!merged.find(p => p.nickname === u.nickname)) {
+                            merged.push(u);
+                            hasChanges = true;
+                        }
+                    });
+                    
+                    return hasChanges ? merged : prevUsers;
+                });
+            }
+        } catch(e) {
+            console.error("Polling user sync failed", e);
+        }
+    }, 5000);
+
+    return () => clearInterval(interval);
   }, []);
 
   const refreshOrders = async () => {

@@ -198,7 +198,7 @@ export default function UserManagementTab() {
               <tr>
                 <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">닉네임</th>
                 <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">회원명</th>
-                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">유튜브 ID</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">고유번호</th>
                 <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">전화번호</th>
                 <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">주소</th>
                 <th 
@@ -320,7 +320,7 @@ export default function UserManagementTab() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">유튜브 ID (선택)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">고유번호 (선택)</label>
                 <input 
                   type="text" 
                   name="youtubeHandle"

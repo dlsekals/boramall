@@ -28,7 +28,7 @@ function LoginContent() {
 
   // Google Session logic removed by user request (prioritizing manual YouTube ID)
 
-  const [hasClickedFindId, setHasClickedFindId] = useState(false);
+  // Google Session logic removed by user request (prioritizing manual YouTube ID)
 
   // Back button handling - confirmed to leave signup
   useEffect(() => {
@@ -433,12 +433,7 @@ function LoginContent() {
                   <div className="flex-1 min-w-0 flex flex-col gap-0.5 sm:gap-1">
                     <div className="flex items-center justify-between w-full">
                       <div 
-                        className={`flex items-center w-[60%] sm:w-[65%] border rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-[#8b5cf6] transition-colors shadow-inner ${emptyFields.includes('nickname') ? 'border-red-500 bg-red-50' : 'border-gray-200 bg-white/90'} ${!hasClickedFindId ? 'opacity-80' : ''}`}
-                        onClick={() => {
-                            if (!hasClickedFindId) {
-                                alert("오른쪽 빨간색 [아이디 찾기] 버튼을 먼저 눌러서 본인의 정확한 유튜브 아이디를 확인해주세요!");
-                            }
-                        }}
+                        className={`flex items-center w-full border rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-[#8b5cf6] transition-colors shadow-inner ${emptyFields.includes('nickname') ? 'border-red-500 bg-red-50' : 'border-gray-200 bg-white/90'}`}
                       >
                         <span className="pl-2 sm:pl-3 pr-0.5 sm:pr-1 text-gray-400 font-bold select-none cursor-default py-1.5 sm:py-2.5 text-[11px] sm:text-base shrink-0">@</span>
                         <input 
@@ -446,44 +441,20 @@ function LoginContent() {
                           type="text" 
                           value={formData.nickname.replace(/^@/, '')}
                           onChange={(e) => {
-                            if (!hasClickedFindId) {
-                                alert("먼저 [아이디 찾기] 버튼을 눌러 정확한 아이디를 확인해주세요!");
-                                return;
-                            }
                             setFormData({ ...formData, nickname: e.target.value });
                             if (emptyFields.includes('nickname')) {
                               setEmptyFields(prev => prev.filter(f => f !== 'nickname'));
                             }
                           }}
-                          readOnly={!hasClickedFindId}
-                          placeholder="아이디 찾기 버튼 클릭 필수"
+                          placeholder="본인의 유튜브 아이디를 입력해주세요"
                           className="w-full min-w-0 pr-1.5 sm:pr-2.5 py-1.5 sm:p-2.5 focus:outline-none text-[11px] sm:text-base tracking-tight bg-transparent"
                         />
                       </div>
-                      <button 
-                        type="button" 
-                        onClick={() => {
-                            setHasClickedFindId(true);
-                            const targetUrl = 'https://youtube.com/handle';
-                            const isKakao = /KAKAOTALK/i.test(navigator.userAgent);
-                            if (isKakao) {
-                                location.href = `kakaotalk://web/openExternal?url=${encodeURIComponent(targetUrl)}`;
-                            } else {
-                                window.open(targetUrl, '_blank');
-                            }
-                        }}
-                        className="w-[38%] sm:w-[33%] py-1.5 sm:py-2 bg-gradient-to-b from-[#ff4d4d] to-[#cc0000] text-white rounded-xl font-bold text-[10.5px] sm:text-xs tracking-tighter sm:tracking-normal shadow-[0_3px_0_#990000,0_4px_4px_rgba(0,0,0,0.2)] active:shadow-[0_0px_0_#990000,0_1px_2px_rgba(0,0,0,0.3)] active:translate-y-[3px] transition-all flex items-center justify-center gap-0.5 sm:gap-1.5 border border-[#cc0000]"
-                      >
-                        <svg viewBox="0 0 24 24" fill="currentColor" className="w-[12px] h-[12px] sm:w-[14px] sm:h-[14px] shrink-0">
-                          <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
-                        </svg>
-                        <span className="truncate">아이디 찾기</span>
-                      </button>
                     </div>
                     <div className="flex flex-col gap-0.5 sm:gap-1 mt-1 bg-purple-50 p-2 rounded-lg border border-purple-100">
                       <p className="text-[11px] sm:text-xs text-[#8b5cf6] font-bold break-keep leading-[1.4] tracking-tight">
-                        💡 아이디 찾기 버튼을 먼저 누르고 @옆에 써있는 문자를 정확히 입력해 주셔야 주문 집계가 가능합니다.<br/>
-                        <span className="text-red-500 font-black mt-0.5 inline-block">예) @다다-h4k</span>
+                        💡 본인의 정확한 유튜브 아이디를 @옆에 입력해 주셔야 올바른 주문 집계가 가능합니다.<br/>
+                        <span className="text-red-500 font-black mt-0.5 inline-block">찾는 방법: 유튜브 앱 우측 하단 '나' 탭 클릭 시 프로필 아래 @... 확인</span>
                       </p>
                     </div>
                   </div>

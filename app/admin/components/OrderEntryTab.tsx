@@ -484,33 +484,23 @@ export default function OrderEntryTab({ initialProductId }: OrderEntryTabProps) 
             ? localUsers.find(u => u.youtubeHandle === target.handle)
             : undefined;
 
-        // NEW REQUIREMENT: If matched strictly by 4-letter ID, and nickname differs, UPDATE the nickname
-        if (matchedUser && target.handle) {
-            if (matchedUser.nickname !== target.nickname) {
-                const updatedUser = { ...matchedUser, nickname: target.nickname };
-                updateUser(matchedUser, updatedUser);
-                
-                localUsers = localUsers.map(u => 
-                    (u.phone === matchedUser!.phone) ? updatedUser : u
-                );
-                matchedUser = updatedUser;
-                newLogs.push(`🔄 닉네임 자동 변경: 고유번호(${target.handle}) 기준 매칭. 닉네임이 [${target.nickname}]으로 업데이트 됨`);
-            }
-        }
+        // DB 안전을 위해 ID 기반 매칭 시 닉네임을 임의로 수정하지 않습니다. (Prisma FK 오류 방지)
+        // 닉네임이 다르면 자동으로 추후 부분 검색 등으로 연결됩니다.
+
         
         // Strategy 2: If no handle match, find by nickname and AUTO-LINK
         if (!matchedUser) {
-             const nicknameMatch = localUsers.find(u => u.nickname === target.nickname);
+             // Case-insensitive exact match
+             const nicknameMatch = localUsers.find(u => u.nickname.toLowerCase() === target.nickname.toLowerCase());
              
-             // CRITICAL: Previously, we blocked nickname matches if the DB user had a handle but the input didn't.
-             // In manual mode, we should trust exact nickname matches.
              if (nicknameMatch) {
                  matchedUser = nicknameMatch;
              }
              
-             // 2b. Partial match: User signed up as "@다다", chat shows "@다다-h4k" or "@다다입니다"
+             // 2b. Partial match
              if (!matchedUser) {
-                 const candidates = localUsers.filter(u => target.nickname.startsWith(u.nickname))
+                 const targetNickLower = target.nickname.toLowerCase();
+                 const candidates = localUsers.filter(u => targetNickLower.startsWith(u.nickname.toLowerCase()))
                                          .sort((a, b) => b.nickname.length - a.nickname.length);
                  if (candidates.length > 0) {
                      matchedUser = candidates[0];
@@ -574,10 +564,11 @@ export default function OrderEntryTab({ initialProductId }: OrderEntryTabProps) 
 
         const result = createOrder(matchedUser.nickname, [selectedProductId], [orderQty], true);
         if (result.success) {
+            const handleStr = matchedUser.youtubeHandle ? `[ID:${matchedUser.youtubeHandle}]` : '';
             if (isPartial) {
-                newLogs.push(`⚠️ 부분성공: ${matchedUser.name}(${matchedUser.nickname}) - ${product.name} ${orderQty}개 (재고 부족으로 ${target.qty - orderQty}개 누락)`);
+                newLogs.push(`⚠️ 부분성공: ${matchedUser.name}(${matchedUser.nickname})${handleStr} - ${product.name} ${orderQty}개 (재고 부족으로 ${target.qty - orderQty}개 누락)`);
             } else {
-                newLogs.push(`✅ 성공: ${matchedUser.name}(${matchedUser.nickname}) - ${product.name} ${orderQty}개`);
+                newLogs.push(`✅ 성공: ${matchedUser.name}(${matchedUser.nickname})${handleStr} - ${product.name} ${orderQty}개`);
             }
             succeededTargets.push({ nickname: target.nickname, qty: orderQty });
             processedCount++;
@@ -618,9 +609,9 @@ export default function OrderEntryTab({ initialProductId }: OrderEntryTabProps) 
     setLogs(prev => [`--- ${new Date().toLocaleTimeString('ko-KR', { timeZone: 'Asia/Seoul' })} 처리 결과 (${processedCount}/${targets.length}) ---`, ...newLogs, ...prev]);
     setInputText('');
     
-    // Reset product selection
-    setSelectedProductId('');
-    setSearchQuery('');
+    // (사용자 요청) 상품 선택 내역이 유지되도록 초기화 코드 삭제
+    // setSelectedProductId('');
+    // setSearchQuery('');
   };
 
   const handleManualProcess = () => {
@@ -663,9 +654,7 @@ export default function OrderEntryTab({ initialProductId }: OrderEntryTabProps) 
           } else {
               setLogs(prev => [`✅ 수기 입력 성공: ${manualSelectedUser.name}(${manualSelectedUser.nickname}) - ${product.name} ${orderQty}개`, ...prev]);
           }
-          // Reset product and quantity only for continuous input for the same user
-          setSelectedProductId('');
-          setSearchQuery('');
+          // (사용자 요청) 수기 주문 시에도 상품 선택 유지
           setManualQuantity(1);
       } else {
           setLogs(prev => [`❌ 수기 입력 실패: ${manualSelectedUser.name} - ${result.message}`, ...prev]);
