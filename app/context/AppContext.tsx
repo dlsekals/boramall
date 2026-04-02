@@ -175,9 +175,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                     let hasChanges = false;
                     const merged = [...prevUsers];
                     
-                    // Add purely new users to prevent overwriting active edits
+                    // 삭제되거나 수정 중인 유저가 Polling에 의해 덮어씌워지는(부활하는) 레이스 컨디션을 방지하기 위해,
+                    // 현재 로컬에 있는 가장 마지막 가입자의 시간보다 '더 최근에 가입한' 완전히 찌릿찌릿한 신규 유저만 덧붙입니다.
+                    let maxLocalTime = 0;
+                    prevUsers.forEach(u => {
+                        const t = new Date(u.registeredAt).getTime();
+                        if (t > maxLocalTime) maxLocalTime = t;
+                    });
+                    
                     usersRes.forEach(u => {
-                        if (!merged.find(p => p.nickname === u.nickname)) {
+                        const t = new Date(u.registeredAt).getTime();
+                        if (t > maxLocalTime && !merged.find(p => p.nickname === u.nickname)) {
                             merged.push(u);
                             hasChanges = true;
                         }
