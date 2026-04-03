@@ -34,6 +34,7 @@ export default function OrderEntryTab({ initialProductId }: OrderEntryTabProps) 
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
   const userDropdownRef = useRef<HTMLDivElement>(null);
   const [manualQuantity, setManualQuantity] = useState<number | ''>(1);
+  const [manualSuccess, setManualSuccess] = useState(false);
   const [quickSearchQuery, setQuickSearchQuery] = useState('');
 
   // Inline Price Edit States
@@ -656,6 +657,8 @@ export default function OrderEntryTab({ initialProductId }: OrderEntryTabProps) 
           }
           // (사용자 요청) 수기 주문 시에도 상품 선택 유지
           setManualQuantity(1);
+          setManualSuccess(true);
+          setTimeout(() => setManualSuccess(false), 1500);
       } else {
           setLogs(prev => [`❌ 수기 입력 실패: ${manualSelectedUser.name} - ${result.message}`, ...prev]);
       }
@@ -1362,10 +1365,14 @@ export default function OrderEntryTab({ initialProductId }: OrderEntryTabProps) 
                 </div>
                 <button 
                     onClick={handleManualProcess}
-                    disabled={!manualSelectedUser || !selectedProductId || !manualQuantity || manualQuantity <= 0}
-                    className="w-full sm:flex-1 bg-[#673ab7] text-white text-sm sm:text-base font-bold py-1.5 sm:py-2.5 rounded hover:bg-[#5e35b1] disabled:bg-gray-300 disabled:cursor-not-allowed transition flex justify-center items-center gap-2"
+                    disabled={!manualSelectedUser || !selectedProductId || !manualQuantity || manualQuantity <= 0 || manualSuccess}
+                    className={`w-full sm:flex-1 text-white text-sm sm:text-base font-bold py-1.5 sm:py-2.5 rounded transition flex justify-center items-center gap-2 disabled:cursor-not-allowed ${
+                        manualSuccess 
+                            ? 'bg-emerald-500 hover:bg-emerald-600 disabled:bg-emerald-500' 
+                            : 'bg-[#673ab7] hover:bg-[#5e35b1] disabled:bg-gray-300'
+                    }`}
                 >
-                    🚀 즉시 등록
+                    {manualSuccess ? '✅ 등록 완료!' : '🚀 즉시 등록'}
                 </button>
             </div>
         </div>
