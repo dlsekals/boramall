@@ -244,15 +244,15 @@ export default function OrderItemStatusTab() {
                                         <td className="py-2.5 px-3 font-bold text-gray-900 border-l border-transparent">
                                             {item.productName}
                                         </td>
-                                        <td className="py-2.5 px-3 text-center">
-                                            <span className="inline-block bg-purple-600 text-white rounded px-2.5 py-0.5 font-bold shadow-sm">
-                                                {item.totalQuantity}개
-                                            </span>
+                                        <td className="py-2.5 px-3 text-center text-base font-black text-gray-800">
+                                            {item.totalQuantity}
                                         </td>
                                         <td className="py-2.5 px-3 text-center">
-                                            <span className={`inline-block px-2 py-0.5 rounded font-bold ${item.remainingStock <= 0 ? 'bg-red-100 text-red-600' : 'bg-gray-200 text-gray-700'}`}>
-                                                {item.remainingStock}개
-                                            </span>
+                                            {item.remainingStock <= 0 ? (
+                                                <span className="text-sm font-black text-red-500">매진</span>
+                                            ) : (
+                                                <span className="text-base font-black text-gray-800">{item.remainingStock}</span>
+                                            )}
                                         </td>
                                         <td className="py-2.5 px-3 text-right font-mono font-bold text-gray-800">
                                             {item.totalRevenue.toLocaleString()}원
