@@ -249,6 +249,15 @@ export default function OrderEntryTab({ initialProductId }: OrderEntryTabProps) 
   };
 
   const handleProductQuickAdd = (product: Product) => {
+      if (inputText.trim() !== '') {
+          if (!confirm("진행중인 주문이 마감되지 않았습니다. 주문 마감하지 않고 다음 상품으로 넘어가겠습니까?")) {
+              return;
+          }
+          setInputText('');
+          setMissingUsersText('');
+          setSuccessOrdersText('');
+      }
+
       setSelectedProductId(product.id);
       setSearchQuery(product.name);
       setIsDropdownOpen(false);

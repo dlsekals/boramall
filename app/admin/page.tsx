@@ -11,9 +11,10 @@ import OrderManagementTab from './components/OrderManagementTab';
 import UserManagementTab from './components/UserManagementTab';
 import DashboardTab from './components/DashboardTab';
 import DeliveryManagementTab from './components/DeliveryManagementTab';
+import OrderItemStatusTab from './components/OrderItemStatusTab';
 
 export default function AdminPage() {
-  const [activeTab, setActiveTab] = useState<'inventory' | 'entry' | 'management' | 'users' | 'dashboard' | 'delivery'>('users');
+  const [activeTab, setActiveTab] = useState<'inventory' | 'entry' | 'management' | 'users' | 'dashboard' | 'delivery' | 'itemstatus'>('users');
   const { products, orders } = useApp();
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -74,12 +75,13 @@ export default function AdminPage() {
               { id: 'inventory', icon: '📦', label: '재고 관리' },
               { id: 'entry', icon: '⚡', label: '주문 입력' },
               { id: 'management', icon: '🧾', label: '주문 내역' },
+              { id: 'itemstatus', icon: '📋', label: '주문 물품 현황' },
               { id: 'delivery', icon: '🚚', label: '배송 관리' },
               { id: 'dashboard', icon: '📊', label: '통계/보관' },
             ].map(tab => (
               <button 
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id as 'users' | 'inventory' | 'entry' | 'management' | 'delivery' | 'dashboard')}
+                onClick={() => setActiveTab(tab.id as 'users' | 'inventory' | 'entry' | 'management' | 'itemstatus' | 'delivery' | 'dashboard')}
                 className={`relative flex items-center justify-center shrink-0 min-w-max gap-1 px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl sm:rounded-2xl font-bold text-xs sm:text-sm whitespace-nowrap transition-colors duration-200 border ${
                     activeTab === tab.id 
                     ? 'bg-gradient-to-br from-[#673ab7] to-[#9c27b0] text-white shadow-md shadow-purple-500/30 border-transparent' 
@@ -100,6 +102,7 @@ export default function AdminPage() {
         {activeTab === 'inventory' && <InventoryTab />}
         {activeTab === 'entry' && <OrderEntryTab />}
         {activeTab === 'management' && <OrderManagementTab />}
+        {activeTab === 'itemstatus' && <OrderItemStatusTab />}
         {activeTab === 'delivery' && <DeliveryManagementTab />}
         {activeTab === 'dashboard' && <DashboardTab />}
       </main>
