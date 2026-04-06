@@ -227,10 +227,11 @@ export default function OrderItemStatusTab() {
                             <tr>
                                 <th className="py-2.5 px-3 w-12 text-center whitespace-nowrap">순위</th>
                                 <th className="py-2.5 px-3 min-w-[150px]">판매물품명</th>
+                                <th className="py-2.5 px-3 text-center whitespace-nowrap">판매수량</th>
                                 <th className="py-2.5 px-3 text-center whitespace-nowrap">남은재고</th>
                                 <th className="py-2.5 px-3 text-right whitespace-nowrap">총 판매액</th>
                                 <th className="py-2.5 px-3 text-right whitespace-nowrap">순수익</th>
-                                <th className="py-2.5 px-3 text-center min-w-[200px]">판매수량 및 구매자확인</th>
+                                <th className="py-2.5 px-3 text-center whitespace-nowrap">구매자 확인</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y relative">
@@ -242,6 +243,11 @@ export default function OrderItemStatusTab() {
                                         <td className="py-2.5 px-3 text-center font-bold text-gray-500">{index + 1}</td>
                                         <td className="py-2.5 px-3 font-bold text-gray-900 border-l border-transparent">
                                             {item.productName}
+                                        </td>
+                                        <td className="py-2.5 px-3 text-center">
+                                            <span className="inline-block bg-purple-600 text-white rounded px-2.5 py-0.5 font-bold shadow-sm">
+                                                {item.totalQuantity}개
+                                            </span>
                                         </td>
                                         <td className="py-2.5 px-3 text-center">
                                             <span className={`inline-block px-2 py-0.5 rounded font-bold ${item.remainingStock <= 0 ? 'bg-red-100 text-red-600' : 'bg-gray-200 text-gray-700'}`}>
@@ -258,24 +264,19 @@ export default function OrderItemStatusTab() {
                                                 <span className="font-mono font-bold text-blue-600">{item.totalProfit.toLocaleString()}원</span>
                                             )}
                                         </td>
-                                        <td className="py-2.5 px-3">
-                                            <div className="flex items-center justify-center gap-2">
-                                                <span className="inline-block bg-purple-600 text-white rounded px-2.5 py-0.5 font-bold shadow-sm">
-                                                    {item.totalQuantity}개
-                                                </span>
-                                                <button 
-                                                    onClick={() => toggleExpand(item.productName)}
-                                                    className="bg-white border-2 border-gray-300 hover:border-[#673ab7] hover:text-[#673ab7] text-gray-600 rounded px-2 py-0.5 text-xs font-bold transition-colors shadow-sm flex items-center gap-1 active:scale-95"
-                                                >
-                                                    👁️ 구매자 확인 {expandedProduct === item.productName ? '▲' : '▼'}
-                                                </button>
-                                            </div>
+                                        <td className="py-2.5 px-3 text-center">
+                                            <button 
+                                                onClick={() => toggleExpand(item.productName)}
+                                                className="bg-white border-2 border-gray-300 hover:border-[#673ab7] hover:text-[#673ab7] text-gray-600 rounded px-2 py-0.5 text-xs font-bold transition-colors shadow-sm inline-flex items-center gap-1 active:scale-95"
+                                            >
+                                                👁️ 확인 {expandedProduct === item.productName ? '▲' : '▼'}
+                                            </button>
                                         </td>
                                     </tr>
                                     {/* Accordion Row for Buyers */}
                                     {expandedProduct === item.productName && (
                                         <tr>
-                                            <td colSpan={6} className="bg-[#fcfbff] px-3 py-4 border-b-2 border-[#673ab7]/20 shadow-inner">
+                                            <td colSpan={7} className="bg-[#fcfbff] px-3 py-4 border-b-2 border-[#673ab7]/20 shadow-inner">
                                                 <div className="max-w-4xl mx-auto bg-white rounded-lg border border-[#e5d9f2] p-3 shadow-sm">
                                                     <h3 className="text-xs font-black text-[#673ab7] mb-2 flex items-center gap-1 border-b border-gray-100 pb-1">
                                                         <span>📋</span> [{item.productName}] 구매자 명단 (총 {item.buyers.length}명)
