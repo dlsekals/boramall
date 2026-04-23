@@ -193,6 +193,15 @@ export default function OrderEntryTab({ initialProductId }: OrderEntryTabProps) 
 
   // Sort active products by most recent order
   const sortedActiveProducts = [...activeProducts].sort((a, b) => {
+      // 1. Prioritize immediate session selection history
+      const indexA = recentProductIds.indexOf(a.id);
+      const indexB = recentProductIds.indexOf(b.id);
+      
+      if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+      if (indexA !== -1) return -1;
+      if (indexB !== -1) return 1;
+
+      // 2. Fallback to historical orders in DB
       // Look for the most recent order containing the product by searching from the end of the array (newest first usually)
       const ordersA = orders.filter(o => o.items.some(i => i.productName === a.name));
       const ordersB = orders.filter(o => o.items.some(i => i.productName === b.name));
