@@ -8,7 +8,15 @@ import { useApp } from '../../context/AppContext';
 export default function OrderItemStatusTab() {
     const { orders, users, products } = useApp();
     
-    const [viewMode, setViewMode] = useState<'active' | 'today' | 'yesterday' | 'all'>('active');
+    const [viewMode, setViewMode] = useState<'active' | 'today' | 'yesterday' | 'custom' | 'all'>('active');
+    const [customStartDate, setCustomStartDate] = useState(() => {
+        const d = new Date();
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    });
+    const [customEndDate, setCustomEndDate] = useState(() => {
+        const d = new Date();
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    });
     const [productSearch, setProductSearch] = useState('');
     const [sortBy, setSortBy] = useState<'quantity' | 'profit'>('quantity');
     const [expandedProduct, setExpandedProduct] = useState<string | null>(null);
@@ -18,6 +26,15 @@ export default function OrderItemStatusTab() {
     yesterday.setDate(yesterday.getDate() - 1);
     const yesterdayStr = yesterday.toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul' });
 
+    // Date parser for "YYYY. M. D. ..." format
+    const parseKoreanDate = (str: string) => {
+        const match = str.match(/(\d{4})\.\s*(\d{1,2})\.\s*(\d{1,2})\./);
+        if (match) {
+            return new Date(parseInt(match[1]), parseInt(match[2]) - 1, parseInt(match[3]));
+        }
+        return new Date(str);
+    };
+
     // 1. Filter Orders by View Mode
     const filteredOrders = orders.filter(order => {
         if (viewMode === 'active') {
@@ -26,6 +43,17 @@ export default function OrderItemStatusTab() {
             return order.createdAt.startsWith(todayStr);
         } else if (viewMode === 'yesterday') {
             return order.createdAt.startsWith(yesterdayStr);
+        } else if (viewMode === 'custom' && customStartDate && customEndDate) {
+            const startObj = new Date(customStartDate);
+            startObj.setHours(0, 0, 0, 0);
+            const endObj = new Date(customEndDate);
+            endObj.setHours(23, 59, 59, 999);
+            
+            const orderDateObj = parseKoreanDate(order.createdAt);
+            if (!isNaN(orderDateObj.getTime())) {
+                return orderDateObj >= startObj && orderDateObj <= endObj;
+            }
+            return false;
         }
         return true; // 'all'
     });
@@ -129,7 +157,7 @@ export default function OrderItemStatusTab() {
         }
 
         const wb = XLSX.utils.book_new();
-        const fileNameSuffix = viewMode === 'active' ? '현재진행중' : viewMode === 'today' ? '오늘' : viewMode === 'yesterday' ? '어제' : '전체기록';
+        const fileNameSuffix = viewMode === 'active' ? '현재진행중' : viewMode === 'today' ? '오늘' : viewMode === 'yesterday' ? '어제' : viewMode === 'custom' ? `지정일(${customStartDate}~${customEndDate})` : '전체기록';
 
         const rows = summaryData.map(d => ({
             "판매물품명": d.productName,
@@ -170,8 +198,26 @@ export default function OrderItemStatusTab() {
                             <option value="active">📍 진행중(활성)</option>
                             <option value="today">📅 오늘</option>
                             <option value="yesterday">📅 어제</option>
+                            <option value="custom">🔍 직접 지정</option>
                             <option value="all">전체 내역</option>
                         </select>
+                        {viewMode === 'custom' && (
+                            <div className="flex items-center gap-1.5 shrink-0">
+                                <input 
+                                    type="date" 
+                                    value={customStartDate}
+                                    onChange={(e) => setCustomStartDate(e.target.value)}
+                                    className="border border-gray-300 rounded px-2 py-1 text-sm font-bold text-gray-700 focus:ring-[#673ab7] outline-none h-full max-h-[30px]"
+                                />
+                                <span className="text-gray-500 font-bold">~</span>
+                                <input 
+                                    type="date" 
+                                    value={customEndDate}
+                                    onChange={(e) => setCustomEndDate(e.target.value)}
+                                    className="border border-gray-300 rounded px-2 py-1 text-sm font-bold text-gray-700 focus:ring-[#673ab7] outline-none h-full max-h-[30px]"
+                                />
+                            </div>
+                        )}
                     </div>
                     
                     <div className="flex items-center gap-2">
