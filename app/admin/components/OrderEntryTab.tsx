@@ -402,8 +402,7 @@ export default function OrderEntryTab({ initialProductId }: OrderEntryTabProps) 
                 continue; // Ignore pure chat lines that don't have numbers
             }
 
-            // NLP-lite: Question check (if they are asking a question rather than ordering)
-            if (/[?？가능되나얼마문의]/.test(currentString)) {
+            if (/(\?|？|가능|되나|얼마|문의)/.test(currentString)) {
                 targets.push({
                     nickname: activeUser.nickname,
                     handle: activeUser.handle,
