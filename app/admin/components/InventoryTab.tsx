@@ -463,7 +463,7 @@ export default function InventoryTab() {
                   const marginRate = product.price > 0 ? ((margin / product.price) * 100).toFixed(1) : '0';
                   
                   return (
-                    <tr key={product.id} className={`${product.isActive ? 'bg-white' : 'bg-gray-50 text-gray-400'} h-[34px]`}>
+                    <tr key={product.id} className={`${product.isActive ? (product.stock <= 0 ? 'bg-red-50 hover:bg-red-100 text-red-700' : 'bg-white hover:bg-gray-50') : 'bg-gray-50 text-gray-400'} h-[34px] transition-colors`}>
                       <td className="px-1 align-middle text-center">
                         <input
                           type="checkbox"
