@@ -21,6 +21,7 @@ export default function OrderEntryTab({ initialProductId }: OrderEntryTabProps) 
   
   // Copy to clipboard state
   const [copiedProductId, setCopiedProductId] = useState<string | null>(null);
+  const [copiedProductMode, setCopiedProductMode] = useState<'withStock' | 'withoutStock' | null>(null);
   
   // Parser Result Text States
   const [missingUsersText, setMissingUsersText] = useState('');
@@ -39,6 +40,7 @@ export default function OrderEntryTab({ initialProductId }: OrderEntryTabProps) 
 
   // Inline Price Edit States
   const [editingPrice, setEditingPrice] = useState<number | ''>('');
+  const [editingStock, setEditingStock] = useState<number | ''>('');
   const [isEditingPrice, setIsEditingPrice] = useState(false);
 
   // Alias Fixer State
@@ -272,26 +274,32 @@ export default function OrderEntryTab({ initialProductId }: OrderEntryTabProps) 
       }
   };
 
-  const handleCopyProductInfo = (e: React.MouseEvent | null, p: Product) => {
+  const handleCopyProductInfo = (e: React.MouseEvent | null, p: Product, showStock: boolean = true) => {
       if (e) e.stopPropagation();
-      const text = `[${p.name}] 🔥보라몰 회원가 ${p.price}원🔥  ${p.stock}개 한정${p.onlineLowestPrice ? `  [온라인 최저가 ${p.onlineLowestPrice}원]` : ''}`;
+      const text = `[${p.name}] 🔥보라몰 회원가 ${p.price}원🔥${showStock ? `  ${p.stock}개 한정` : ''}${p.onlineLowestPrice ? `  [온라인 최저가 ${p.onlineLowestPrice}원]` : ''}`;
       
+      const onSuccess = () => {
+          setCopiedProductId(p.id);
+          setCopiedProductMode(showStock ? 'withStock' : 'withoutStock');
+          setTimeout(() => {
+              setCopiedProductId(null);
+              setCopiedProductMode(null);
+          }, 1500);
+      };
+
       if (navigator.clipboard && window.isSecureContext) {
-          navigator.clipboard.writeText(text).then(() => {
-              setCopiedProductId(p.id);
-              setTimeout(() => setCopiedProductId(null), 1500);
-          }).catch(err => {
+          navigator.clipboard.writeText(text).then(onSuccess).catch(err => {
               console.error('Failed to copy: ', err);
               // Fallback
-              fallbackCopyTextToClipboard(text, p.id);
+              fallbackCopyTextToClipboard(text, p.id, showStock ? 'withStock' : 'withoutStock');
           });
       } else {
           // Fallback for non-https/older browsers
-          fallbackCopyTextToClipboard(text, p.id);
+          fallbackCopyTextToClipboard(text, p.id, showStock ? 'withStock' : 'withoutStock');
       }
   };
 
-  const fallbackCopyTextToClipboard = (text: string, id: string) => {
+  const fallbackCopyTextToClipboard = (text: string, id: string, mode: 'withStock' | 'withoutStock') => {
       const textArea = document.createElement("textarea");
       textArea.value = text;
       
@@ -306,7 +314,11 @@ export default function OrderEntryTab({ initialProductId }: OrderEntryTabProps) 
           const successful = document.execCommand('copy');
           if (successful) {
               setCopiedProductId(id);
-              setTimeout(() => setCopiedProductId(null), 1500);
+              setCopiedProductMode(mode);
+              setTimeout(() => {
+                  setCopiedProductId(null);
+                  setCopiedProductMode(null);
+              }, 1500);
           } else {
               setLogs(prev => [`❌ 복사 실패`, ...prev]);
           }
@@ -831,11 +843,8 @@ export default function OrderEntryTab({ initialProductId }: OrderEntryTabProps) 
                                 id={`product-item-${p.id}`}
                                 onClick={(e) => {
                                     if (isUnavailable) return;
-                                    setSelectedProductId(p.id);
-                                    setSearchQuery(p.name);
-                                    setIsDropdownOpen(false);
-                                    setIsEditingPrice(false);
-                                    handleCopyProductInfo(e, p);
+                                    e.stopPropagation();
+                                    handleProductQuickAdd(p);
                                 }}
                                 className={`py-1.5 px-3 border-b last:border-0 ${isUnavailable ? 'bg-gray-50 text-gray-400 cursor-not-allowed' : 'hover:bg-[#f3effb] cursor-pointer'} ${selectedProductId === p.id ? 'bg-[#ede7f6]' : ''}`}
                             >
@@ -851,12 +860,12 @@ export default function OrderEntryTab({ initialProductId }: OrderEntryTabProps) 
                                             {isMissingPrice ? '주문불가' : p.stock <= 0 ? '품절' : `재고: ${p.stock}개`}
                                         </span>
                                         <button 
-                                            onClick={(e) => handleCopyProductInfo(e, p)}
+                                            onClick={(e) => handleCopyProductInfo(e, p, true)}
                                             disabled={isMissingPrice}
                                             className={`px-2 py-1 rounded transition-colors border shadow-sm flex items-center gap-1 active:scale-95 text-xs ${isMissingPrice ? 'bg-gray-50 text-gray-300 border-gray-100 cursor-not-allowed' : 'bg-gray-100 hover:bg-gray-200 text-gray-600'}`}
                                             title="방송용 문구 복사"
                                         >
-                                            {copiedProductId === p.id ? '✅ 복사됨' : '📋 복사'}
+                                            {copiedProductId === p.id && copiedProductMode === 'withStock' ? '✅ 복사됨' : '📋 복사'}
                                         </button>
                                     </div>
                                 </div>
@@ -896,9 +905,22 @@ export default function OrderEntryTab({ initialProductId }: OrderEntryTabProps) 
                             
                             <div className="flex items-center gap-1 border-l border-indigo-200 pl-4">
                                 <span className="text-sm font-bold text-gray-700">재고:</span>
-                                <span className={`text-sm font-bold ${selectedP.stock <= 0 ? 'text-red-500' : 'text-emerald-600'}`}>
-                                    {selectedP.stock <= 0 ? '품절' : `${selectedP.stock}개`}
-                                </span>
+                                {isEditingPrice ? (
+                                    <div className="flex items-center gap-1">
+                                        <input 
+                                            type="number" 
+                                            value={editingStock}
+                                            onChange={e => setEditingStock(e.target.value === '' ? '' : parseInt(e.target.value))}
+                                            className="w-20 px-2 py-1 text-sm border outline-none focus:border-indigo-500 rounded font-bold"
+                                            placeholder="0"
+                                        />
+                                        <span className="text-sm font-bold text-gray-700">개</span>
+                                    </div>
+                                ) : (
+                                    <span className={`text-sm font-bold ${selectedP.stock <= 0 ? 'text-red-500' : 'text-emerald-600'}`}>
+                                        {selectedP.stock <= 0 ? '품절' : `${selectedP.stock}개`}
+                                    </span>
+                                )}
                             </div>
 
                             {selectedP.expirationDate && (
@@ -922,28 +944,37 @@ export default function OrderEntryTab({ initialProductId }: OrderEntryTabProps) 
                         
                         <div className="flex gap-2 self-end sm:self-auto items-center">
                             <button 
-                                onClick={(e) => handleCopyProductInfo(e, selectedP)}
+                                onClick={(e) => handleCopyProductInfo(e, selectedP, false)}
                                 disabled={selectedP.price === 0}
                                 className={`px-2 py-1.5 rounded transition-colors border shadow-sm flex items-center gap-1 active:scale-95 text-xs font-bold leading-tight ${selectedP.price === 0 ? 'bg-gray-50 text-gray-300 border-gray-100 cursor-not-allowed' : 'bg-white hover:bg-gray-100 text-gray-700 border-gray-300'}`}
-                                title="방송용 문구 복사"
+                                title="방송용 문구 복사 (수량숨김)"
                             >
-                                {copiedProductId === selectedP.id ? '✅ 복사됨' : '📋 패널 복사'}
+                                {copiedProductId === selectedP.id && copiedProductMode === 'withoutStock' ? '✅ 복사됨' : '📋 패널 복사 (수량숨김)'}
+                            </button>
+                            <button 
+                                onClick={(e) => handleCopyProductInfo(e, selectedP, true)}
+                                disabled={selectedP.price === 0}
+                                className={`px-2 py-1.5 rounded transition-colors border shadow-sm flex items-center gap-1 active:scale-95 text-xs font-bold leading-tight ${selectedP.price === 0 ? 'bg-gray-50 text-gray-300 border-gray-100 cursor-not-allowed' : 'bg-white hover:bg-gray-100 text-gray-700 border-gray-300'}`}
+                                title="방송용 문구 복사 (재고포함)"
+                            >
+                                {copiedProductId === selectedP.id && copiedProductMode === 'withStock' ? '✅ 복사됨' : '📋 패널 복사 (재고포함)'}
                             </button>
                             {isEditingPrice ? (
                                 <>
                                     <button className="px-3 py-1.5 bg-gray-200 text-gray-700 text-xs font-bold rounded hover:bg-gray-300 transition-colors" onClick={() => setIsEditingPrice(false)}>취소</button>
                                     <button className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-bold rounded hover:bg-indigo-700 transition-colors" onClick={() => {
-                                        if (typeof editingPrice === 'number' && editingPrice >= 0) {
-                                            updateProduct({ ...selectedP, price: editingPrice });
+                                        if (typeof editingPrice === 'number' && editingPrice >= 0 && typeof editingStock === 'number' && editingStock >= 0) {
+                                            updateProduct({ ...selectedP, price: editingPrice, stock: editingStock });
                                             setIsEditingPrice(false);
                                         } else {
-                                            alert('올바른 금액을 숫자로 입력하세요.');
+                                            alert('가격과 재고 모두 올바른 숫자로 입력하세요.');
                                         }
                                     }}>저장</button>
                                 </>
                             ) : (
                                 <button className="px-3 py-1.5 text-indigo-600 bg-white border border-indigo-200 text-xs font-bold rounded hover:bg-indigo-50 transition-colors shadow-sm flex items-center gap-1" onClick={() => {
                                     setEditingPrice(selectedP.price === 0 ? '' : selectedP.price);
+                                    setEditingStock(selectedP.stock);
                                     setIsEditingPrice(true);
                                 }}>
                                     ✏️ 수정
