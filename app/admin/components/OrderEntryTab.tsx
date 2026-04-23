@@ -180,17 +180,6 @@ export default function OrderEntryTab({ initialProductId }: OrderEntryTabProps) 
       }
       return dateStr;
   };
-  const filteredSearchProducts = activeProducts.filter(p => 
-      selectedProductId ? true : p.name.toLowerCase().includes(searchQuery.toLowerCase())
-  ).sort((a, b) => {
-      const indexA = recentProductIds.indexOf(a.id);
-      const indexB = recentProductIds.indexOf(b.id);
-      if (indexA !== -1 && indexB !== -1) return indexA - indexB;
-      if (indexA !== -1) return -1;
-      if (indexB !== -1) return 1;
-      return 0;
-  });
-
   // Sort active products by most recent order
   const sortedActiveProducts = [...activeProducts].sort((a, b) => {
       // 1. Prioritize immediate session selection history
@@ -211,6 +200,10 @@ export default function OrderEntryTab({ initialProductId }: OrderEntryTabProps) 
       
       return timeB - timeA;
   });
+
+  const filteredSearchProducts = sortedActiveProducts.filter(p => 
+      selectedProductId ? true : p.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const filteredSearchUsers = users.filter(u => 
       !u.isBlacklisted && 
@@ -870,17 +863,19 @@ export default function OrderEntryTab({ initialProductId }: OrderEntryTabProps) 
                                     e.stopPropagation();
                                     handleProductQuickAdd(p);
                                 }}
-                                className={`py-1.5 px-3 border-b last:border-0 ${isUnavailable ? 'bg-gray-50 text-gray-400 cursor-not-allowed' : 'hover:bg-[#f3effb] cursor-pointer'} ${selectedProductId === p.id ? 'bg-[#ede7f6]' : ''}`}
+                                className={`py-1.5 px-3 border-b last:border-0 ${p.stock <= 0 ? 'bg-red-50 text-red-600 line-through decoration-red-300 opacity-90' : isMissingPrice ? 'bg-gray-50 text-gray-400 cursor-not-allowed' : 'hover:bg-[#f3effb] cursor-pointer'} ${selectedProductId === p.id && p.stock > 0 ? 'bg-[#ede7f6]' : ''}`}
                             >
                                 <div className="flex justify-between items-center text-sm sm:text-base gap-2">
-                                    <span className={`font-medium flex-1 flex items-center flex-wrap gap-1.5 ${isMissingPrice ? 'text-gray-400' : 'text-gray-800'}`}>
+                                    <span className={`font-medium flex-1 flex items-center flex-wrap gap-1.5 ${isMissingPrice ? 'text-gray-400' : p.stock <= 0 ? 'text-red-700 font-bold' : 'text-gray-800'}`}>
                                         <span>{p.name}</span>
-                                        <span className={`text-xs ${isUnavailable ? 'text-gray-400' : 'text-gray-500'} font-normal`}>({isMissingPrice ? '가격 미정' : p.price.toLocaleString() + '원'})</span>
+                                        <span className={`text-xs ${isUnavailable ? 'text-gray-400' : 'text-gray-500'} font-normal ml-1`}>
+                                            ({isMissingPrice ? '가격 미정' : p.price.toLocaleString() + '원'})
+                                        </span>
                                         {p.expirationDate && <span className="text-xs font-bold text-blue-600 hidden sm:inline-block ml-1">({formatExpDate(p.expirationDate)})</span>}
                                         {p.onlineLowestPrice && <span className="text-xs font-bold text-orange-600 hidden sm:inline-block ml-1">[최저가 {p.onlineLowestPrice.toLocaleString()}원]</span>}
                                     </span>
                                     <div className="flex items-center gap-2 shrink-0">
-                                        <span className={`text-xs sm:text-sm ${isMissingPrice ? 'text-red-500 font-bold' : p.stock <= 0 ? 'text-red-400 font-bold' : 'text-emerald-600 font-medium'}`}>
+                                        <span className={`text-xs sm:text-sm ${isMissingPrice ? 'text-red-500 font-bold' : p.stock <= 0 ? 'text-red-600 font-black tracking-widest bg-red-100 px-2 py-0.5 rounded border border-red-300' : 'text-emerald-600 font-medium'}`}>
                                             {isMissingPrice ? '주문불가' : p.stock <= 0 ? '품절' : `재고: ${p.stock}개`}
                                         </span>
                                         <button 
