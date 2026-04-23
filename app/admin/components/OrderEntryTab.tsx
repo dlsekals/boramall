@@ -946,18 +946,18 @@ export default function OrderEntryTab({ initialProductId }: OrderEntryTabProps) 
                             <button 
                                 onClick={(e) => handleCopyProductInfo(e, selectedP, false)}
                                 disabled={selectedP.price === 0}
-                                className={`px-2 py-1.5 rounded transition-colors border shadow-sm flex items-center gap-1 active:scale-95 text-xs font-bold leading-tight ${selectedP.price === 0 ? 'bg-gray-50 text-gray-300 border-gray-100 cursor-not-allowed' : 'bg-white hover:bg-gray-100 text-gray-700 border-gray-300'}`}
+                                className={`w-[90px] justify-center px-2 py-1.5 rounded transition-colors border shadow-sm flex items-center gap-1 active:scale-95 text-xs font-bold leading-tight ${selectedP.price === 0 ? 'bg-gray-50 text-gray-300 border-gray-100 cursor-not-allowed' : 'bg-white hover:bg-gray-100 text-gray-700 border-gray-300'}`}
                                 title="방송용 문구 복사 (수량숨김)"
                             >
-                                {copiedProductId === selectedP.id && copiedProductMode === 'withoutStock' ? '✅ 복사됨' : '📋 패널 복사 (수량숨김)'}
+                                {copiedProductId === selectedP.id && copiedProductMode === 'withoutStock' ? '✅ 복사됨' : '📋 복사 수량x'}
                             </button>
                             <button 
                                 onClick={(e) => handleCopyProductInfo(e, selectedP, true)}
                                 disabled={selectedP.price === 0}
-                                className={`px-2 py-1.5 rounded transition-colors border shadow-sm flex items-center gap-1 active:scale-95 text-xs font-bold leading-tight ${selectedP.price === 0 ? 'bg-gray-50 text-gray-300 border-gray-100 cursor-not-allowed' : 'bg-white hover:bg-gray-100 text-gray-700 border-gray-300'}`}
+                                className={`w-[90px] justify-center px-2 py-1.5 rounded transition-colors border shadow-sm flex items-center gap-1 active:scale-95 text-xs font-bold leading-tight ${selectedP.price === 0 ? 'bg-gray-50 text-gray-300 border-gray-100 cursor-not-allowed' : 'bg-white hover:bg-gray-100 text-gray-700 border-gray-300'}`}
                                 title="방송용 문구 복사 (재고포함)"
                             >
-                                {copiedProductId === selectedP.id && copiedProductMode === 'withStock' ? '✅ 복사됨' : '📋 패널 복사 (재고포함)'}
+                                {copiedProductId === selectedP.id && copiedProductMode === 'withStock' ? '✅ 복사됨' : '📋 복사 수량o'}
                             </button>
                             {isEditingPrice ? (
                                 <>
