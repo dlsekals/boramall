@@ -22,6 +22,9 @@ export default function OrderEntryTab({ initialProductId }: OrderEntryTabProps) 
   // Copy to clipboard state
   const [copiedProductId, setCopiedProductId] = useState<string | null>(null);
   const [copiedProductMode, setCopiedProductMode] = useState<'withStock' | 'withoutStock' | null>(null);
+
+  // Product Selection History State
+  const [recentProductIds, setRecentProductIds] = useState<string[]>([]);
   
   // Parser Result Text States
   const [missingUsersText, setMissingUsersText] = useState('');
@@ -179,7 +182,14 @@ export default function OrderEntryTab({ initialProductId }: OrderEntryTabProps) 
   };
   const filteredSearchProducts = activeProducts.filter(p => 
       selectedProductId ? true : p.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  ).sort((a, b) => {
+      const indexA = recentProductIds.indexOf(a.id);
+      const indexB = recentProductIds.indexOf(b.id);
+      if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+      if (indexA !== -1) return -1;
+      if (indexB !== -1) return 1;
+      return 0;
+  });
 
   // Sort active products by most recent order
   const sortedActiveProducts = [...activeProducts].sort((a, b) => {
@@ -241,7 +251,7 @@ export default function OrderEntryTab({ initialProductId }: OrderEntryTabProps) 
           alert('상품을 먼저 선택해주세요.');
           return;
       }
-      const textToAdd = `${user.nickname}${user.youtubeHandle ? `(${user.youtubeHandle})` : ''} `;
+      const textToAdd = `${user.nickname}${user.youtubeHandle ? `(${user.youtubeHandle})` : ''}\n`;
       setInputText(prev => prev + (prev && !prev.endsWith('\n') ? '\n' : '') + textToAdd);
       
       // Focus textarea and move cursor to end
@@ -265,6 +275,11 @@ export default function OrderEntryTab({ initialProductId }: OrderEntryTabProps) 
       setIsDropdownOpen(false);
       setIsEditingPrice(false);
       
+      setRecentProductIds(prev => {
+          const filtered = prev.filter(id => id !== product.id);
+          return [product.id, ...filtered];
+      });
+
       // 추가된 기능: 상품 목록에서 선택 시 자동으로 클립보드에 복사
       handleCopyProductInfo(null, product);
 
