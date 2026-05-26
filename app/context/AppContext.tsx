@@ -523,33 +523,37 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const mergeDuplicateOrders = () => {
       let mergedCount = 0;
       
-      const newOrders = [...orders];
-      const unpaidOrders = newOrders.filter(o => !o.isPaid);
+      const activeOrders = orders.filter(o => !o.isPaid);
+      const paidOrders = orders.filter(o => o.isPaid);
       
       // Group unpaid orders by userId
       const groupedByUserId: Record<string, Order[]> = {};
-      unpaidOrders.forEach(o => {
+      activeOrders.forEach(o => {
           if (!groupedByUserId[o.userId]) groupedByUserId[o.userId] = [];
           groupedByUserId[o.userId].push(o);
       });
       
+      // Track which order IDs to delete, and updated orders
+      const idsToDelete = new Set<string>();
+      const updatedBaseOrders: Record<string, Order> = {};
+
       Object.keys(groupedByUserId).forEach(userId => {
           const userOrders = groupedByUserId[userId];
           if (userOrders.length > 1) {
-              // Sort to keep the oldest createdAt
-              userOrders.sort((a, b) => a.id.localeCompare(b.id)); // Oldest first based on timestamp id
+              // Sort to keep the oldest (by ID timestamp)
+              userOrders.sort((a, b) => a.id.localeCompare(b.id));
               
               const baseOrder = userOrders[0];
               let combinedTotalPrice = baseOrder.totalPrice;
               const combinedItems: OrderItem[] = baseOrder.items.map(item => ({...item}));
               
-              // Merge items from other orders into baseOrder
+              // Merge items from all other orders into baseOrder
               for (let i = 1; i < userOrders.length; i++) {
                   const orderToMerge = userOrders[i];
                   combinedTotalPrice += orderToMerge.totalPrice;
                   
                   orderToMerge.items.forEach(itemToMerge => {
-                      const existingItemIdx = combinedItems.findIndex(i => i.productName === itemToMerge.productName);
+                      const existingItemIdx = combinedItems.findIndex(ci => ci.productName === itemToMerge.productName);
                       if (existingItemIdx > -1) {
                           combinedItems[existingItemIdx].quantity += itemToMerge.quantity;
                       } else {
@@ -557,28 +561,31 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                       }
                   });
                   
-                  // Remove merged order from list
-                  const indexToRemove = newOrders.findIndex(o => o.id === orderToMerge.id);
-                  if (indexToRemove > -1) {
-                      newOrders.splice(indexToRemove, 1);
-                  }
+                  // Mark this order for deletion (do NOT splice here)
+                  idsToDelete.add(orderToMerge.id);
               }
               
-              // Update base order
-              const baseIndex = newOrders.findIndex(o => o.id === baseOrder.id);
-              if (baseIndex > -1) {
-                 newOrders[baseIndex] = {
-                     ...baseOrder,
-                     totalPrice: combinedTotalPrice,
-                     items: combinedItems
-                 };
-              }
+              // Store the merged base order
+              updatedBaseOrders[baseOrder.id] = {
+                  ...baseOrder,
+                  totalPrice: combinedTotalPrice,
+                  items: combinedItems
+              };
               
               mergedCount++;
           }
       });
       
       if (mergedCount > 0) {
+          // Build the new orders list:
+          // 1. Remove orders marked for deletion
+          // 2. Update base orders with merged data
+          const newOrders = [
+              ...activeOrders
+                  .filter(o => !idsToDelete.has(o.id))
+                  .map(o => updatedBaseOrders[o.id] ?? o),
+              ...paidOrders
+          ];
           setOrders(newOrders);
       }
       

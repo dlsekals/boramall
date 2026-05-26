@@ -112,6 +112,40 @@ export default function InventoryTab() {
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [frozenIds, setFrozenIds] = useState<string[]>([]);
+  
+  // ✅ 성능 최적화: 로컬 편집 값 캐시
+  // onChange마다 즉시 updateProduct(DB 저장)하면 모바일에서 렉 발생.
+  // 대신 로컬 state에만 저장하다가 onBlur(입력 완료) 시에만 DB에 저장.
+  const [editValues, setEditValues] = useState<Record<string, Partial<Product>>>({});
+
+  // 로컬 편집값 읽기 헬퍼 - 편집 중이면 로컬값, 아니면 DB값
+  const getEditVal = <K extends keyof Product>(product: Product, key: K): Product[K] => {
+    const local = editValues[product.id];
+    if (local && key in local) return local[key] as Product[K];
+    return product[key];
+  };
+
+  // onChange: 로컬에만 저장 (렉 없음)
+  const handleFieldChange = (product: Product, patch: Partial<Product>) => {
+    setEditValues(prev => ({
+      ...prev,
+      [product.id]: { ...(prev[product.id] || {}), ...patch }
+    }));
+  };
+
+  // onBlur: 실제 DB 저장
+  const commitEdit = (product: Product, extraPatch?: Partial<Product>) => {
+    const local = editValues[product.id] || {};
+    const merged = { ...product, ...local, ...extraPatch };
+    updateProduct(merged);
+    // 로컬 캐시 클리어
+    setEditValues(prev => {
+      const next = { ...prev };
+      delete next[product.id];
+      return next;
+    });
+    stopEditing();
+  };
 
   const displayProducts = useMemo(() => {
     if (editingId && frozenIds.length > 0) {
@@ -475,12 +509,12 @@ export default function InventoryTab() {
                       <td className="px-2 align-middle overflow-hidden relative min-w-0">
                         <input 
                             type="text" 
-                            value={product.name}
-                            onChange={(e) => updateProduct({...product, name: e.target.value})}
+                            value={getEditVal(product, 'name') as string}
+                            onChange={(e) => { startEditing(product.id); handleFieldChange(product, { name: e.target.value }); }}
                             onFocus={() => startEditing(product.id)}
-                            onBlur={() => stopEditing()}
+                            onBlur={() => commitEdit(product)}
                             className="w-full bg-transparent border-none focus:ring-1 focus:ring-[#673ab7] rounded px-1 py-0.5 font-medium text-sm truncate focus:whitespace-normal focus:bg-white focus:outline-none"
-                            title={product.name}
+                            title={getEditVal(product, 'name') as string}
                         />
                       </td>
                       <td className="px-1 align-middle text-center">
@@ -493,10 +527,10 @@ export default function InventoryTab() {
                                 <input 
                                     type="text" 
                                     placeholder="업체" 
-                                    value={product.vendorName || ''} 
-                                    onChange={(e) => updateProduct({...product, vendorName: e.target.value})} 
+                                    value={(getEditVal(product, 'vendorName') as string) || ''} 
+                                    onChange={(e) => { startEditing(product.id); handleFieldChange(product, { vendorName: e.target.value }); }} 
                                     onFocus={() => startEditing(product.id)}
-                                    onBlur={() => stopEditing()}
+                                    onBlur={() => commitEdit(product)}
                                     className="border-b border-gray-300 text-[10px] p-0.5 outline-none focus:border-[#673ab7] bg-transparent w-14 text-gray-600 text-center" 
                                 />
                             )}
@@ -539,29 +573,29 @@ export default function InventoryTab() {
                       <td className="px-2 align-middle">
                          <div className="flex items-center gap-0.5 justify-end">
                             <input 
-                                type="number" 
-                                step="10"
-                                value={product.onlineLowestPrice || ''}
-                                onChange={(e) => updateProduct({...product, onlineLowestPrice: Number(e.target.value) || undefined})}
-                                onFocus={() => startEditing(product.id)}
-                                onBlur={() => stopEditing()}
-                                className="w-full bg-transparent border-none focus:ring-1 focus:ring-orange-500 text-orange-600 rounded p-0.5 text-right font-bold text-[11px]"
-                                placeholder="최저가"
-                            />
+                                 type="number" 
+                                 step="10"
+                                 value={getEditVal(product, 'onlineLowestPrice') as number || ''}
+                                 onChange={(e) => { startEditing(product.id); handleFieldChange(product, { onlineLowestPrice: Number(e.target.value) || undefined }); }}
+                                 onFocus={() => startEditing(product.id)}
+                                 onBlur={() => commitEdit(product)}
+                                 className="w-full bg-transparent border-none focus:ring-1 focus:ring-orange-500 text-orange-600 rounded p-0.5 text-right font-bold text-[11px]"
+                                 placeholder="최저가"
+                             />
                         </div>
                       </td>
                       <td className="px-2 align-middle">
                          <div className="flex items-center gap-0.5 justify-end">
                             <input 
-                                type="number" 
-                                step="100"
-                                value={purchasePrice > 0 ? purchasePrice : ''}
-                                onChange={(e) => updateProduct({...product, purchasePrice: Number(e.target.value)})}
-                                onFocus={() => startEditing(product.id)}
-                                onBlur={() => stopEditing()}
-                                className="w-full bg-transparent border-none focus:ring-1 focus:ring-[#673ab7] rounded p-0.5 text-right font-bold text-gray-700 text-xs"
-                                placeholder="0"
-                            />
+                                 type="number" 
+                                 step="100"
+                                 value={(getEditVal(product, 'purchasePrice') as number) > 0 ? (getEditVal(product, 'purchasePrice') as number) : ''}
+                                 onChange={(e) => { startEditing(product.id); handleFieldChange(product, { purchasePrice: Number(e.target.value) }); }}
+                                 onFocus={() => startEditing(product.id)}
+                                 onBlur={() => commitEdit(product)}
+                                 className="w-full bg-transparent border-none focus:ring-1 focus:ring-[#673ab7] rounded p-0.5 text-right font-bold text-gray-700 text-xs"
+                                 placeholder="0"
+                             />
                             <span className="text-gray-400 text-[10px]">원</span>
                         </div>
                       </td>
@@ -570,10 +604,10 @@ export default function InventoryTab() {
                           <input 
                               type="number" 
                               step="100"
-                              value={product.price > 0 ? product.price : ''}
-                              onChange={(e) => updateProduct({...product, price: Number(e.target.value)})}
+                              value={(getEditVal(product, 'price') as number) > 0 ? (getEditVal(product, 'price') as number) : ''}
+                              onChange={(e) => { startEditing(product.id); handleFieldChange(product, { price: Number(e.target.value) }); }}
                               onFocus={() => startEditing(product.id)}
-                              onBlur={() => stopEditing()}
+                              onBlur={() => commitEdit(product)}
                               className={`w-full bg-transparent border-none focus:ring-1 focus:ring-[#673ab7] rounded p-0.5 text-right font-bold text-xs ${product.price === 0 ? 'bg-red-50 text-red-500 placeholder-red-400' : ''}`}
                               placeholder={product.price === 0 ? "미정" : "0"}
                           />
@@ -596,16 +630,20 @@ export default function InventoryTab() {
                       </td>
                       <td className="px-2 align-middle text-right">
                              <input 
-                                type="number" 
-                                value={product.stock}
-                                onChange={(e) => updateProduct({...product, stock: Number(e.target.value)})}
-                                onFocus={() => startEditing(product.id)}
-                                onBlur={() => {
-                                    stopEditing();
-                                    updateProduct({...product, updatedAt: new Date().toISOString()});
-                                }}
-                                className={`w-full text-right bg-transparent border-none focus:ring-1 focus:ring-[#673ab7] rounded p-0.5 text-xs ${product.stock < 5 ? 'text-red-500 font-bold' : ''}`}
-                             />
+                                 type="number"
+                                 value={editValues[product.id]?.stock !== undefined 
+                                   ? (editValues[product.id]!.stock === 0 ? '' : editValues[product.id]!.stock as number)
+                                   : (product.stock === 0 ? '' : product.stock)}
+                                 onChange={(e) => { startEditing(product.id); handleFieldChange(product, { stock: Number(e.target.value) }); }}
+                                 onFocus={(e) => { 
+                                   startEditing(product.id);
+                                   // ✅ 재고 0일 때 onFocus 시 빈 칸으로 → 06 버그 방지
+                                   if (product.stock === 0) e.target.value = '';
+                                 }}
+                                 onBlur={() => commitEdit(product, { updatedAt: new Date().toISOString() })}
+                                 className={`w-full text-right bg-transparent border-none focus:ring-1 focus:ring-[#673ab7] rounded p-0.5 text-xs ${product.stock < 5 ? 'text-red-500 font-bold' : ''}`}
+                                 placeholder="0"
+                              />
                       </td>
                       <td className="px-1 align-middle text-center">
                             <button 

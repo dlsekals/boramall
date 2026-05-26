@@ -43,19 +43,22 @@ export default function DashboardTab() {
 
 
 
-  // Helper to parse Korean date string "2026. 03. 31. 오전 10:15:30" safely
-  const parseKoreanDate = (dateStr: string) => {
+  // ✅ 한국식 날짜("2026. 5. 27.") 안전 파싱 - 정규식 기반으로 더 정확
+  const parseDateSafe = (dateStr: string): Date => {
       if (!dateStr) return new Date();
-      const parts = dateStr.split('.');
-      if (parts.length >= 3) {
-          const year = parseInt(parts[0].trim());
-          const month = parseInt(parts[1].trim()) - 1;
-          const day = parseInt(parts[2].trim());
-          const d = new Date(year, month, day, 12, 0, 0); // Default to noon
-          if (!isNaN(d.getTime())) return d;
+      // 한국식: "2026. 5. 27." 또는 "2026. 05. 27." 형태
+      const koMatch = dateStr.match(/(\d{4})\.\s*(\d{1,2})\.\s*(\d{1,2})/);
+      if (koMatch) {
+          return new Date(
+              parseInt(koMatch[1]),
+              parseInt(koMatch[2]) - 1,
+              parseInt(koMatch[3]),
+              12, 0, 0
+          );
       }
-      const fallback = new Date(dateStr);
-      return isNaN(fallback.getTime()) ? new Date() : fallback;
+      // ISO 형식: "2026-05-27" 또는 "2026-05-27T..."
+      const d = new Date(dateStr);
+      return isNaN(d.getTime()) ? new Date() : d;
   };
 
   // Merge live DB orders (which now include both active and archived orders)
@@ -63,7 +66,7 @@ export default function DashboardTab() {
       const map: Record<string, Order[]> = {};
       
       orders.forEach(o => {
-          const d = parseKoreanDate(o.createdAt);
+          const d = parseDateSafe(o.createdAt);
           const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}T12:00:00Z`;
           if (!map[key]) map[key] = [];
           if (!map[key].find(existing => existing.id === o.id)) {

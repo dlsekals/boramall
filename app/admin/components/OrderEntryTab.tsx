@@ -411,7 +411,13 @@ export default function OrderEntryTab({ initialProductId }: OrderEntryTabProps) 
         const userMatch = currentString.match(userRegex);
         if (userMatch) {
             const capturedNick = userMatch[1].trim();
-            const capturedHandle = userMatch[2] ? userMatch[2].trim() : '';
+            const rawCaptured = userMatch[2] ? userMatch[2].trim() : '';
+            
+            // ✅ 버그 수정: 괄호 안이 순수 숫자이면 수량이지 핸들 ID가 아님
+            // 예: @홍길동(2) → 수량 2, 핸들 없음
+            // 예: @홍길동(abc1) → 핸들 abc1
+            const isPureNumber = /^\d+$/.test(rawCaptured);
+            const capturedHandle = isPureNumber ? '' : rawCaptured;
             
             // Set the active user
             activeUser = {
@@ -419,10 +425,25 @@ export default function OrderEntryTab({ initialProductId }: OrderEntryTabProps) 
                 handle: capturedHandle
             };
             
+            // 괄호 안이 순수 숫자였다면, 그 수를 수량으로 즉시 처리
+            if (isPureNumber && rawCaptured) {
+                const inlineQty = parseInt(rawCaptured, 10);
+                if (inlineQty > 0) {
+                    targets.push({
+                        nickname: activeUser.nickname,
+                        handle: activeUser.handle,
+                        qty: inlineQty
+                    });
+                    activeUser = null;
+                    continue;
+                }
+            }
+            
             // 유저 요청: "이제 무조건 주문은 줄바꿈을 해야지만 그걸 주문 수량으로 받게 하자."
             // 따라서 아이디가 있는 줄의 나머지 텍스트는 전부 무시하고 무조건 다음 줄로 넘어갑니다.
             continue;
         }
+
 
         // 2. Try matching a quantity line (if we have an active user waiting for a qty)
         if (activeUser) {
