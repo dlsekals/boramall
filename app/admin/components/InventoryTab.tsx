@@ -188,7 +188,93 @@ const ProductRow = memo(function ProductRow({
   );
 });
 
-
+// ✅ 상품 등록 폼을 memo 컴포넌트로 분리 → 폼 입력 시 ProductRow들 re-render 완전 차단
+const AddProductForm = memo(function AddProductForm({
+  onAdd, formatDisplayDate,
+}: {
+  onAdd: (p: Product) => void;
+  formatDisplayDate: (v?: string) => string;
+}) {
+  const [form, setForm] = useState({
+    name: '', price: '', purchasePrice: '', stock: '',
+    isConsignment: false, vendorName: '', expirationDate: '', onlineLowestPrice: ''
+  });
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.name || !form.stock) return;
+    const p: Product = {
+      id: `${Date.now()}-${Math.random().toString(36).substr(2,9)}`,
+      name: form.name,
+      price: form.price ? Number(form.price) : 0,
+      purchasePrice: form.purchasePrice ? Number(form.purchasePrice) : 0,
+      stock: Number(form.stock),
+      isActive: true,
+      updatedAt: new Date().toISOString(),
+      isConsignment: form.isConsignment,
+      vendorName: form.isConsignment ? form.vendorName : undefined,
+      expirationDate: form.expirationDate || undefined,
+      onlineLowestPrice: form.onlineLowestPrice ? Number(form.onlineLowestPrice) : undefined,
+    };
+    onAdd(p);
+    setForm({ name: '', price: '', purchasePrice: '', stock: '', isConsignment: false, vendorName: '', expirationDate: '', onlineLowestPrice: '' });
+  };
+  return (
+    <div className="bg-white py-3 px-4 sm:px-6 rounded-lg shadow-sm">
+      <h2 className="text-lg font-bold mb-2">상품 추가</h2>
+      <form onSubmit={handleSubmit} className="flex flex-col gap-1.5 sm:gap-3">
+        <div className="flex flex-col sm:flex-row gap-1.5 sm:gap-4 items-end">
+          <div className="flex-[2] w-full">
+            <label className="block text-xs sm:text-sm text-gray-600 mb-0.5">상품명</label>
+            <input type="text" className="w-full border p-2 rounded" value={form.name}
+              onChange={e => setForm(f => ({...f, name: e.target.value}))} placeholder="예: 맛있는 사과" />
+          </div>
+          <div className="w-full sm:w-32">
+            <label className="block text-xs sm:text-sm text-gray-600 mb-0.5">매입가 (원)</label>
+            <input type="number" step="100" className="w-full border p-2 rounded bg-gray-50"
+              value={form.purchasePrice || ''} onChange={e => setForm(f => ({...f, purchasePrice: e.target.value}))} placeholder="0" />
+          </div>
+          <div className="w-full sm:w-32">
+            <label className="block text-xs sm:text-sm text-gray-600 mb-0.5">판매가 (원)</label>
+            <input type="number" step="100" className="w-full border p-2 rounded"
+              value={form.price} onChange={e => setForm(f => ({...f, price: e.target.value}))} placeholder="미정" />
+          </div>
+          <div className="w-full sm:w-32">
+            <label className="block text-xs sm:text-sm text-gray-600 mb-0.5">유통기한(YYMMDD)</label>
+            <input type="text" maxLength={8} placeholder="26-03-30" className="w-full border p-2 rounded text-gray-600"
+              value={formatDisplayDate(form.expirationDate)}
+              onChange={e => setForm(f => ({...f, expirationDate: e.target.value.replace(/[^0-9]/g, '')}))} />
+          </div>
+          <div className="w-full sm:w-32">
+            <label className="block text-xs sm:text-sm text-gray-600 mb-0.5">온라인최저가</label>
+            <input type="number" step="100" className="w-full border p-2 rounded bg-gray-50"
+              value={form.onlineLowestPrice || ''} onChange={e => setForm(f => ({...f, onlineLowestPrice: e.target.value}))} placeholder="0" />
+          </div>
+          <div className="w-full sm:w-24">
+            <label className="block text-xs sm:text-sm text-gray-600 mb-0.5">재고</label>
+            <input type="number" className="w-full border p-2 rounded"
+              value={form.stock} onChange={e => setForm(f => ({...f, stock: e.target.value}))} placeholder="0" />
+          </div>
+          <button type="submit" className="bg-[#673ab7] text-white px-6 py-2 rounded font-bold hover:bg-[#5e35b1] w-full sm:w-auto h-[42px] mt-1 sm:mt-0">이하세요
+            추가
+          </button>
+        </div>
+        <div className="flex items-center gap-4 bg-gray-50 p-2 rounded-lg border border-dashed border-gray-300">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" className="w-4 h-4 accent-[#673ab7]" checked={form.isConsignment}
+              onChange={e => setForm(f => ({...f, isConsignment: e.target.checked}))} />
+            <span className="text-sm font-medium text-gray-700">🚚 위탁 배송 상품 (개별 발주)</span>
+          </label>
+          {form.isConsignment && (
+            <div className="flex-1 max-w-xs">
+              <input type="text" placeholder="발주처 / 업체명 (예: 해남감자)" className="w-full border p-1 rounded text-sm"
+                value={form.vendorName} onChange={e => setForm(f => ({...f, vendorName: e.target.value}))} />
+            </div>
+          )}
+        </div>
+      </form>
+    </div>
+  );
+});
 
 export default function InventoryTab() {
   const { products, addProduct, updateProduct, deleteProduct, toggleProductActive, toggleAllProductsActive, resetOrders } = useApp();
@@ -233,6 +319,11 @@ export default function InventoryTab() {
   
   // Sort State
   const [sortConfig, setSortConfig] = useState<{ key: 'date' | 'stock' | 'expirationDate', direction: 'desc' | 'asc' }>({ key: 'date', direction: 'desc' });
+
+  // Pagination (50개씨)
+  const PAGE_SIZE = 50;
+  const [page, setPage] = useState(0);
+  useEffect(() => { setPage(0); }, [searchTerm, showConsignmentOnly]);
 
   const parseExpDate = (dateStr?: string) => {
       if (!dateStr) return Infinity;
@@ -437,91 +528,8 @@ export default function InventoryTab() {
       </div>
 
       {/* Add Product Section */}
-      <div className="bg-white py-3 px-6 rounded-lg shadow-sm">
-        <h2 className="text-lg font-bold mb-2">상품 추가</h2>
-        <form onSubmit={handleAddProduct} className="flex flex-col gap-1.5 sm:gap-3">
-          <div className="flex flex-col sm:flex-row gap-1.5 sm:gap-4 items-end">
-            <div className="flex-[2] w-full">
-              <label className="block text-xs sm:text-sm text-gray-600 mb-0.5">상품명</label>
-              <input
-                type="text"
-                className="w-full border p-2 rounded"
-                value={newProduct.name}
-                onChange={(e) => setNewProduct({...newProduct, name: e.target.value})}
-                placeholder="예: 맛있는 사과"
-              />
-            </div>
-            <div className="w-full sm:w-32">
-              <label className="block text-xs sm:text-sm text-gray-600 mb-0.5">매입가 (원)</label>
-              <input
-                type="number"
-                step="100"
-                className="w-full border p-2 rounded bg-gray-50"
-                value={newProduct.purchasePrice || ''}
-                onChange={(e) => setNewProduct({...newProduct, purchasePrice: e.target.value})}
-                placeholder="0"
-              />
-            </div>
-            <div className="w-full sm:w-32">
-              <label className="block text-xs sm:text-sm text-gray-600 mb-0.5">판매가 (원)</label>
-              <input
-                type="number"
-                step="100"
-                className="w-full border p-2 rounded"
-                value={newProduct.price}
-                onChange={(e) => setNewProduct({...newProduct, price: e.target.value})}
-                placeholder="미정"
-              />
-            </div>
-            <div className="w-full sm:w-32">
-              <label className="block text-xs sm:text-sm text-gray-600 mb-0.5">유통기한(YYMMDD)</label>
-              <input
-                type="text"
-                maxLength={8}
-                placeholder="26-03-30"
-                className="w-full border p-2 rounded text-gray-600"
-                value={formatDisplayDate(newProduct.expirationDate)}
-                onChange={(e) => setNewProduct({...newProduct, expirationDate: e.target.value.replace(/[^0-9]/g, '')})}
-              />
-            </div>
-            <div className="w-full sm:w-32">
-              <label className="block text-xs sm:text-sm text-gray-600 mb-0.5">온라인최저가</label>
-              <input
-                type="number"
-                step="100"
-                className="w-full border p-2 rounded bg-gray-50"
-                value={newProduct.onlineLowestPrice || ''}
-                onChange={(e) => setNewProduct({...newProduct, onlineLowestPrice: e.target.value})}
-                placeholder="0"
-              />
-            </div>
-            <div className="w-full sm:w-24">
-              <label className="block text-xs sm:text-sm text-gray-600 mb-0.5">재고</label>
-              <input
-                type="number"
-                className="w-full border p-2 rounded"
-                value={newProduct.stock}
-                onChange={(e) => setNewProduct({...newProduct, stock: e.target.value})}
-                placeholder="0"
-              />
-            </div>
-            <button type="submit" className="bg-[#673ab7] text-white px-6 py-2 rounded font-bold hover:bg-[#5e35b1] w-full sm:w-auto h-[42px] mt-1 sm:mt-0">
-              추가
-            </button>
-          </div>
-          <div className="flex items-center gap-4 bg-gray-50 p-2 rounded-lg border border-dashed border-gray-300">
-             <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" className="w-4 h-4 accent-[#673ab7]" checked={newProduct.isConsignment} onChange={(e) => setNewProduct({...newProduct, isConsignment: e.target.checked})} />
-                <span className="text-sm font-medium text-gray-700">🚚 위탁 배송 상품 (개별 발주)</span>
-             </label>
-             {newProduct.isConsignment && (
-                <div className="flex-1 max-w-xs transition-all">
-                   <input type="text" placeholder="발주처 / 업체명 (예: 해남감자)" className="w-full border p-1 rounded text-sm" value={newProduct.vendorName} onChange={(e) => setNewProduct({...newProduct, vendorName: e.target.value})} />
-                </div>
-             )}
-          </div>
-        </form>
-      </div>
+      <AddProductForm onAdd={addProduct} formatDisplayDate={memoFormatDate} />
+
 
       {/* Product List */}
       <div className="bg-white rounded-lg shadow-sm overflow-hidden">
@@ -636,12 +644,10 @@ export default function InventoryTab() {
             </thead>
             <tbody className="divide-y">
               {displayProducts.length === 0 ? (
-                <tr>
-                  <td colSpan={11} className="p-8 text-center text-gray-500">
-                    {searchTerm ? '검색 결과가 없습니다.' : '등록된 상품이 없습니다.'}
-                  </td>
-                </tr>
-              ) : displayProducts.map(product => (
+                <tr><td colSpan={11} className="p-8 text-center text-gray-500">
+                  {searchTerm ? '검색 결과가 없습니다.' : '등록된 상품이 없습니다.'}
+                </td></tr>
+              ) : displayProducts.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE).map(product => (
                 <ProductRow
                   key={product.id}
                   product={product}
@@ -655,6 +661,20 @@ export default function InventoryTab() {
             </tbody>
           </table>
         </div>
+        {/* 페이지네이션 */}
+        {displayProducts.length > PAGE_SIZE && (
+          <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-t text-sm">
+            <span className="text-gray-600">{page * PAGE_SIZE + 1}~{Math.min((page+1)*PAGE_SIZE, displayProducts.length)} / 함 {displayProducts.length}개</span>
+            <div className="flex gap-2">
+              <button onClick={() => setPage(p => Math.max(0, p-1))} disabled={page===0}
+                className="px-3 py-1 rounded bg-white border font-bold disabled:opacity-40 hover:bg-gray-100">◀ 이전</button>
+              <span className="px-2 py-1 text-gray-700">{page+1} / {Math.ceil(displayProducts.length/PAGE_SIZE)}</span>
+              <button onClick={() => setPage(p => Math.min(Math.ceil(displayProducts.length/PAGE_SIZE)-1, p+1))}
+                disabled={(page+1)*PAGE_SIZE >= displayProducts.length}
+                className="px-3 py-1 rounded bg-white border font-bold disabled:opacity-40 hover:bg-gray-100">다음 ▶</button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Reset Modal */}

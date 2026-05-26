@@ -178,7 +178,7 @@ export default function OrderEntryTab({ initialProductId }: OrderEntryTabProps) 
   }, [isDropdownOpen, selectedProductId]);
 
   // Filter only active products
-  const activeProducts = products.filter(p => p.isActive);
+  const activeProducts = useMemo(() => products.filter(p => p.isActive), [products]);
 
   // Format expiration date (e.g. 260328 -> 26/03/28)
   const formatExpDate = (dateStr?: string | null) => {
@@ -191,8 +191,22 @@ export default function OrderEntryTab({ initialProductId }: OrderEntryTabProps) 
       }
       return dateStr;
   };
-  // Sort active products by most recent order
-  const sortedActiveProducts = [...activeProducts].sort((a, b) => {
+  
+  // 주문 history를 Map으로 미리 처리 (O(n*m) 정렬 모드를 O(n+m)으로) 최적화
+  const productLastUsedMap = useMemo(() => {
+      const map = new Map<string, number>();
+      for (const o of orders) {
+          const t = new Date(o.createdAt).getTime() || 0;
+          for (const item of o.items) {
+              const prev = map.get(item.productName) ?? 0;
+              if (t > prev) map.set(item.productName, t);
+          }
+      }
+      return map;
+  }, [orders]);
+
+  // Sort active products by most recent order - useMemo로 캐싱
+  const sortedActiveProducts = useMemo(() => [...activeProducts].sort((a, b) => {
       // 1. Prioritize immediate session selection history
       const indexA = recentProductIds.indexOf(a.id);
       const indexB = recentProductIds.indexOf(b.id);
@@ -201,20 +215,16 @@ export default function OrderEntryTab({ initialProductId }: OrderEntryTabProps) 
       if (indexA !== -1) return -1;
       if (indexB !== -1) return 1;
 
-      // 2. Fallback to historical orders in DB
-      // Look for the most recent order containing the product by searching from the end of the array (newest first usually)
-      const ordersA = orders.filter(o => o.items.some(i => i.productName === a.name));
-      const ordersB = orders.filter(o => o.items.some(i => i.productName === b.name));
-      
-      const timeA = ordersA.length > 0 ? Math.max(...ordersA.map(o => new Date(o.createdAt).getTime())) : 0;
-      const timeB = ordersB.length > 0 ? Math.max(...ordersB.map(o => new Date(o.createdAt).getTime())) : 0;
+      // 2. Fallback to pre-computed map (O(1) per product)
+      const timeA = productLastUsedMap.get(a.name) ?? 0;
+      const timeB = productLastUsedMap.get(b.name) ?? 0;
       
       return timeB - timeA;
-  });
+  }), [activeProducts, recentProductIds, productLastUsedMap]);
 
-  const filteredSearchProducts = sortedActiveProducts.filter(p => 
+  const filteredSearchProducts = useMemo(() => sortedActiveProducts.filter(p => 
       selectedProductId ? true : p.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  ), [sortedActiveProducts, selectedProductId, searchQuery]);
 
   const filteredSearchUsers = users.filter(u => 
       !u.isBlacklisted && 

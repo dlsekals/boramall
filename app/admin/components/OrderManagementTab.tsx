@@ -479,20 +479,27 @@ export default function OrderManagementTab() {
       setEditItems(newItems);
   };
 
-  // --- Statistics Calculations ---
-  // Ensure we use only activeOrders here as well, so the top stats reflect the current list
+  // --- Statistics Calculations (일괄 택배비 제외) ---
+  const getRevenueExShipping = (order: Order) => {
+      const shipFee = order.items
+          .filter(i => i.productName === '일괄 택배비')
+          .reduce((s, i) => s + i.price * i.quantity, 0);
+      return order.totalPrice - shipFee;
+  };
+
   const totalOrders = activeOrders.length;
-  const totalRevenue = activeOrders.reduce((sum, order) => sum + order.totalPrice, 0);
+  const totalRevenue = activeOrders.reduce((sum, o) => sum + getRevenueExShipping(o), 0);
   
   const paidOrders = activeOrders.filter(o => o.isPaid);
   const paidCount = paidOrders.length;
-  const paidTotal = paidOrders.reduce((sum, order) => sum + order.totalPrice, 0);
+  const paidTotal = paidOrders.reduce((sum, o) => sum + getRevenueExShipping(o), 0);
   
   const unpaidOrders = activeOrders.filter(o => !o.isPaid);
   const unpaidCount = unpaidOrders.length;
-  const unpaidTotal = unpaidOrders.reduce((sum, order) => sum + order.totalPrice, 0);
+  const unpaidTotal = unpaidOrders.reduce((sum, o) => sum + getRevenueExShipping(o), 0);
 
   const paidRate = totalRevenue > 0 ? ((paidTotal / totalRevenue) * 100).toFixed(1) : '0.0';
+
 
   // Calculate Net Profit globally across activeOrders
   let totalCost = 0;
