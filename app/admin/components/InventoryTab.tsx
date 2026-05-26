@@ -348,7 +348,7 @@ export default function InventoryTab() {
     let result = [...products];
     
     if (searchTerm) {
-        result = result.filter(p => p.name.includes(searchTerm));
+        result = result.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()));
     }
     
     if (showConsignmentOnly) {
