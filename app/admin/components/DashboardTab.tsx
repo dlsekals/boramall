@@ -43,12 +43,29 @@ export default function DashboardTab() {
 
 
 
+  // ✅ 버그 수정: 한국식 날짜("2026. 5. 27.") → ISO 파싱 실패 방지
+  // createOrder에서 toLocaleDateString('ko-KR')으로 저장되므로 이를 안전하게 파싱
+  const parseDateSafe = (dateStr: string): Date => {
+      // 한국식: "2026. 5. 27." 또는 "2026. 05. 27."
+      const koMatch = dateStr.match(/(\d{4})\.\s*(\d{1,2})\.\s*(\d{1,2})/);
+      if (koMatch) {
+          return new Date(
+              parseInt(koMatch[1]),
+              parseInt(koMatch[2]) - 1,
+              parseInt(koMatch[3])
+          );
+      }
+      // ISO 형식: "2026-05-27" 또는 "2026-05-27T..."
+      const d = new Date(dateStr);
+      return isNaN(d.getTime()) ? new Date(0) : d;
+  };
+
   // Merge live DB orders (which now include both active and archived orders)
   const combinedArchives = useMemo(() => {
       const map: Record<string, Order[]> = {};
       
       orders.forEach(o => {
-          const d = new Date(o.createdAt);
+          const d = parseDateSafe(o.createdAt);
           const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}T12:00:00Z`;
           if (!map[key]) map[key] = [];
           if (!map[key].find(existing => existing.id === o.id)) {
