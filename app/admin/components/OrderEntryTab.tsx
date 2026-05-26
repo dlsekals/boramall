@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { useApp, User, Product } from '../../context/AppContext';
+
 
 interface OrderEntryTabProps {
   initialProductId?: string;
@@ -48,6 +49,16 @@ export default function OrderEntryTab({ initialProductId }: OrderEntryTabProps) 
 
   // Alias Fixer State
   const [aliasFixInput, setAliasFixInput] = useState('');
+
+  // 오늘 매출 통계
+  const todayStats = useMemo(() => {
+    const todayStr = new Date().toLocaleDateString('ko-KR');
+    const todayOrders = orders.filter(o => o.createdAt === todayStr || o.createdAt.startsWith(new Date().toISOString().slice(0,10)));
+    const paid   = todayOrders.filter(o => o.isPaid).reduce((s, o) => s + o.totalPrice, 0);
+    const unpaid = todayOrders.filter(o => !o.isPaid).reduce((s, o) => s + o.totalPrice, 0);
+    return { paid, unpaid, count: todayOrders.length };
+  }, [orders]);
+
 
   const handleFixAlias = () => {
       try {
@@ -723,7 +734,23 @@ export default function OrderEntryTab({ initialProductId }: OrderEntryTabProps) 
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
+
+      {/* 오늘 매출 현황 배너 */}
+      <div className="grid grid-cols-3 gap-2 sm:gap-3">
+        <div className="bg-gradient-to-br from-purple-600 to-purple-700 rounded-xl p-3 sm:p-4 text-white">
+          <p className="text-[10px] sm:text-xs font-medium opacity-80 mb-1">오늘 입금완료</p>
+          <p className="text-base sm:text-xl font-black">{(todayStats.paid / 10000).toFixed(1)}<span className="text-xs font-normal opacity-70">만원</span></p>
+        </div>
+        <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl p-3 sm:p-4 text-white">
+          <p className="text-[10px] sm:text-xs font-medium opacity-80 mb-1">오늘 미입금</p>
+          <p className="text-base sm:text-xl font-black">{(todayStats.unpaid / 10000).toFixed(1)}<span className="text-xs font-normal opacity-70">만원</span></p>
+        </div>
+        <div className="bg-gradient-to-br from-gray-700 to-gray-800 rounded-xl p-3 sm:p-4 text-white">
+          <p className="text-[10px] sm:text-xs font-medium opacity-80 mb-1">오늘 주문건수</p>
+          <p className="text-base sm:text-xl font-black">{todayStats.count}<span className="text-xs font-normal opacity-70">건</span></p>
+        </div>
+      </div>
 
       {/* Mode Toggle */}
       <div className="flex bg-gray-200 p-1 rounded-lg">
@@ -1116,29 +1143,7 @@ export default function OrderEntryTab({ initialProductId }: OrderEntryTabProps) 
           {/* Right Column: Active Products Sidebar & Dedicated Tools */}
           <div className="lg:w-[22%] shrink-0 space-y-3">
               
-              {/* NEW TOOL: Alias Linker */}
-              <div className="bg-white p-3 rounded-lg shadow-sm border border-orange-200">
-                  <h2 className="text-sm font-bold text-gray-700 mb-2 flex items-center gap-1.5">
-                      <span className="text-orange-500">🔗</span> 아이디 강제 매칭
-                  </h2>
-                  <p className="text-[10px] text-gray-500 mb-2 leading-tight flex flex-col gap-0.5">
-                      <span>형식: <strong>@닉네임(고유코드) 실명</strong></span>
-                      <span className="text-orange-600">입력 후 버튼 클릭 시 동일 실명의 최근 가입자에게 새 아이디를 즉시 덮어씌웁니다.</span>
-                  </p>
-                  <textarea
-                      value={aliasFixInput}
-                      onChange={(e) => setAliasFixInput(e.target.value)}
-                      className="w-full h-14 border border-gray-200 rounded p-2 text-xs focus:ring-1 focus:ring-orange-500 outline-none resize-none font-mono"
-                      placeholder="@보라몰(a1tP) 인다민"
-                  />
-                  <button
-                      onClick={handleFixAlias}
-                      disabled={!aliasFixInput.trim()}
-                      className="w-full mt-1.5 bg-orange-50 text-orange-600 border border-orange-200 hover:bg-orange-100 hover:border-orange-300 text-xs font-bold py-1.5 rounded transition disabled:bg-gray-100 disabled:text-gray-400 disabled:border-gray-200"
-                  >
-                      ✨ 즉시 매칭 업데이트 (최신버전)
-                  </button>
-              </div>
+
 
               <div className="bg-white p-4 rounded-lg shadow-sm h-full max-h-[800px] flex flex-col border border-emerald-100">
                   <h2 className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">

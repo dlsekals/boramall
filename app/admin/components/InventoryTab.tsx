@@ -1,9 +1,194 @@
 "use client";
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useCallback, memo } from 'react';
 import { useApp, Product } from '../../context/AppContext';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
+
+// ✅ 렉 근본 해결: 각 행을 별도 컴포넌트로 분리 + React.memo
+// 한 행의 입력이 다른 행을 절대 리렌더하지 않음
+const ProductRow = memo(function ProductRow({
+  product,
+  updateProduct,
+  deleteProduct,
+  toggleProductActive,
+  parseExpDate,
+  formatDisplayDate,
+}: {
+  product: Product;
+  updateProduct: (p: Product) => void;
+  deleteProduct: (id: string) => void;
+  toggleProductActive: (id: string) => void;
+  parseExpDate: (d?: string) => number;
+  formatDisplayDate: (v?: string) => string;
+}) {
+  // 이 행만의 로컬 state — 다른 행과 완전히 격리됨
+  const [local, setLocal] = useState<Product>(product);
+  const isEditingRef = { current: false };
+
+  // DB에서 product prop이 바뀔 때만 동기화 (편집 중이 아닐 때)
+  useEffect(() => {
+    if (!isEditingRef.current) {
+      setLocal(product);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [product.id, product.updatedAt, product.isActive, product.isConsignment, product.stock]);
+
+  const commit = useCallback((patch?: Partial<Product>) => {
+    isEditingRef.current = false;
+    const merged = { ...local, ...patch, updatedAt: new Date().toISOString() };
+    setLocal(merged);
+    updateProduct(merged);
+  }, [local, updateProduct]);
+
+  const purchasePrice = local.purchasePrice || 0;
+  const margin = local.price > 0 ? local.price - purchasePrice : 0;
+  const marginRate = local.price > 0 ? ((margin / local.price) * 100).toFixed(1) : '0';
+
+  const expColorClass = (() => {
+    if (!local.expirationDate || local.expirationDate.length !== 6) return 'text-gray-400';
+    const expTime = parseExpDate(local.expirationDate);
+    const today = new Date(); today.setHours(0,0,0,0);
+    const diff = Math.floor((expTime - today.getTime()) / 86400000);
+    return diff < 0 ? 'text-red-700 font-bold' : diff <= 14 ? 'text-red-500 font-bold' : 'text-gray-600';
+  })();
+
+  const dDayLabel = (() => {
+    if (!local.expirationDate || local.expirationDate.length !== 6) return null;
+    const expTime = parseExpDate(local.expirationDate);
+    const today = new Date(); today.setHours(0,0,0,0);
+    const diff = Math.floor((expTime - today.getTime()) / 86400000);
+    const colorStr = diff < 0 ? 'text-red-700' : diff <= 14 ? 'text-red-500' : 'text-gray-400';
+    const label = diff < 0 ? `D+${Math.abs(diff)}` : diff === 0 ? 'D-Day' : `D-${diff}`;
+    return <span className={`text-[10px] font-bold ${colorStr}`}>{label}</span>;
+  })();
+
+  return (
+    <tr className={`${
+      local.isActive
+        ? local.stock <= 0 ? 'bg-red-50 hover:bg-red-100 text-red-700' : 'bg-white hover:bg-gray-50'
+        : 'bg-gray-50 text-gray-400'
+    } h-[34px] transition-colors`}>
+      {/* 활성 체크박스 */}
+      <td className="px-1 align-middle text-center">
+        <input type="checkbox" checked={local.isActive} onChange={() => toggleProductActive(product.id)}
+          className="w-4 h-4 accent-[#673ab7] cursor-pointer" />
+      </td>
+      {/* 상품명 */}
+      <td className="px-2 align-middle overflow-hidden relative min-w-0">
+        <input type="text"
+          value={local.name}
+          onChange={e => { isEditingRef.current = true; setLocal(p => ({...p, name: e.target.value})); }}
+          onBlur={() => commit()}
+          className="w-full bg-transparent border-none focus:ring-1 focus:ring-[#673ab7] rounded px-1 py-0.5 font-medium text-sm truncate focus:whitespace-normal focus:bg-white focus:outline-none"
+          title={local.name}
+        />
+      </td>
+      {/* 위탁 */}
+      <td className="px-1 align-middle text-center">
+        <div className="flex flex-col items-center gap-0.5">
+          <label className="flex items-center gap-1 cursor-pointer bg-gray-50 px-1.5 py-0.5 rounded border border-gray-200 hover:bg-purple-50">
+            <input type="checkbox" className="w-3.5 h-3.5 accent-[#673ab7]"
+              checked={local.isConsignment || false}
+              onChange={e => { const v = e.target.checked; setLocal(p => ({...p, isConsignment: v})); commit({ isConsignment: v }); }}
+            />
+            <span className="text-xs text-gray-600">위탁</span>
+          </label>
+          {local.isConsignment && (
+            <input type="text" placeholder="업체"
+              value={local.vendorName || ''}
+              onChange={e => { isEditingRef.current = true; setLocal(p => ({...p, vendorName: e.target.value})); }}
+              onBlur={() => commit()}
+              className="border-b border-gray-300 text-[10px] p-0.5 outline-none focus:border-[#673ab7] bg-transparent w-14 text-gray-600 text-center"
+            />
+          )}
+        </div>
+      </td>
+      {/* 입고일 */}
+      <td className="px-2 align-middle text-center text-xs text-gray-500 whitespace-nowrap">
+        {local.updatedAt ? new Date(local.updatedAt).toLocaleDateString('ko-KR', { year: '2-digit', month: '2-digit', day: '2-digit' }) : '-'}
+      </td>
+      {/* 유통기한 */}
+      <td className="px-1 align-middle text-center">
+        <div className="flex flex-col items-center">
+          <input type="text" maxLength={8} placeholder="YY-MM-DD"
+            value={formatDisplayDate(local.expirationDate)}
+            onChange={e => { isEditingRef.current = true; setLocal(p => ({...p, expirationDate: e.target.value.replace(/[^0-9]/g,'') || undefined})); }}
+            onBlur={() => commit()}
+            className={`bg-transparent outline-none w-full text-center text-xs font-medium ${expColorClass}`}
+          />
+          {dDayLabel}
+        </div>
+      </td>
+      {/* 온라인 최저가 */}
+      <td className="px-2 align-middle">
+        <div className="flex items-center gap-0.5 justify-end">
+          <input type="number" step="10" placeholder="최저가"
+            value={local.onlineLowestPrice || ''}
+            onChange={e => { isEditingRef.current = true; setLocal(p => ({...p, onlineLowestPrice: Number(e.target.value) || undefined})); }}
+            onBlur={() => commit()}
+            className="w-full bg-transparent border-none focus:ring-1 focus:ring-orange-500 text-orange-600 rounded p-0.5 text-right font-bold text-[11px]"
+          />
+        </div>
+      </td>
+      {/* 매입가 */}
+      <td className="px-2 align-middle">
+        <div className="flex items-center gap-0.5 justify-end">
+          <input type="number" step="100" placeholder="0"
+            value={purchasePrice > 0 ? purchasePrice : ''}
+            onChange={e => { isEditingRef.current = true; setLocal(p => ({...p, purchasePrice: Number(e.target.value)})); }}
+            onBlur={() => commit()}
+            className="w-full bg-transparent border-none focus:ring-1 focus:ring-[#673ab7] rounded p-0.5 text-right font-bold text-gray-700 text-xs"
+          />
+          <span className="text-gray-400 text-[10px]">원</span>
+        </div>
+      </td>
+      {/* 판매가 */}
+      <td className="px-2 align-middle">
+        <div className="flex items-center gap-0.5 justify-end">
+          <input type="number" step="100"
+            value={local.price > 0 ? local.price : ''}
+            onChange={e => { isEditingRef.current = true; setLocal(p => ({...p, price: Number(e.target.value)})); }}
+            onBlur={() => commit()}
+            className={`w-full bg-transparent border-none focus:ring-1 focus:ring-[#673ab7] rounded p-0.5 text-right font-bold text-xs ${local.price === 0 ? 'text-red-500' : ''}`}
+            placeholder={local.price === 0 ? '미정' : '0'}
+          />
+          {local.price > 0 && <span className="text-gray-800 text-[10px]">원</span>}
+        </div>
+      </td>
+      {/* 마진 */}
+      <td className="px-2 align-middle text-right">
+        {local.price === 0 ? (
+          <span className="text-[10px] font-bold text-red-500">미정</span>
+        ) : (
+          <>
+            <span className={`text-xs font-medium ${margin > 0 ? 'text-green-600' : 'text-red-500'}`}>{marginRate}%</span>
+            <div className="text-[10px] text-gray-400">({margin.toLocaleString()})</div>
+          </>
+        )}
+      </td>
+      {/* 재고 */}
+      <td className="px-2 align-middle text-right">
+        <input type="number" placeholder="0"
+          value={local.stock === 0 ? '' : local.stock}
+          onChange={e => { isEditingRef.current = true; setLocal(p => ({...p, stock: Number(e.target.value)})); }}
+          onFocus={e => { if (local.stock === 0) e.target.value = ''; }}
+          onBlur={() => commit()}
+          className={`w-full text-right bg-transparent border-none focus:ring-1 focus:ring-[#673ab7] rounded p-0.5 text-xs ${local.stock < 5 ? 'text-red-500 font-bold' : ''}`}
+        />
+      </td>
+      {/* 삭제 */}
+      <td className="px-1 align-middle text-center">
+        <button onClick={() => { if (confirm(`'${local.name}' 삭제하시겠습니까?`)) deleteProduct(product.id); }}
+          className="text-xs text-red-400 hover:text-red-600 transition-colors">
+          삭제
+        </button>
+      </td>
+    </tr>
+  );
+});
+
+
 
 export default function InventoryTab() {
   const { products, addProduct, updateProduct, deleteProduct, toggleProductActive, toggleAllProductsActive, resetOrders } = useApp();
@@ -112,70 +297,35 @@ export default function InventoryTab() {
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [frozenIds, setFrozenIds] = useState<string[]>([]);
-  
-  // ✅ 성능 최적화: 로컬 편집 값 캐시
-  // onChange마다 즉시 updateProduct(DB 저장)하면 모바일에서 렉 발생.
-  // 대신 로컬 state에만 저장하다가 onBlur(입력 완료) 시에만 DB에 저장.
-  const [editValues, setEditValues] = useState<Record<string, Partial<Product>>>({});
-
-  // 로컬 편집값 읽기 헬퍼 - 편집 중이면 로컬값, 아니면 DB값
-  const getEditVal = <K extends keyof Product>(product: Product, key: K): Product[K] => {
-    const local = editValues[product.id];
-    if (local && key in local) return local[key] as Product[K];
-    return product[key];
-  };
-
-  // onChange: 로컬에만 저장 (렉 없음)
-  const handleFieldChange = (product: Product, patch: Partial<Product>) => {
-    setEditValues(prev => ({
-      ...prev,
-      [product.id]: { ...(prev[product.id] || {}), ...patch }
-    }));
-  };
-
-  // onBlur: 실제 DB 저장
-  const commitEdit = (product: Product, extraPatch?: Partial<Product>) => {
-    const local = editValues[product.id] || {};
-    const merged = { ...product, ...local, ...extraPatch };
-    updateProduct(merged);
-    // 로컬 캐시 클리어
-    setEditValues(prev => {
-      const next = { ...prev };
-      delete next[product.id];
-      return next;
-    });
-    stopEditing();
-  };
 
   const displayProducts = useMemo(() => {
     if (editingId && frozenIds.length > 0) {
       const ordered = frozenIds
         .map(id => products.find(p => p.id === id))
         .filter((p): p is Product => !!p);
-      
       const missing = products.filter(p => !frozenIds.includes(p.id))
-                              .filter(p => {
-                                if (searchTerm && !p.name.includes(searchTerm)) return false;
-                                if (showConsignmentOnly && !p.isConsignment) return false;
-                                return true;
-                              });
+        .filter(p => {
+          if (searchTerm && !p.name.includes(searchTerm)) return false;
+          if (showConsignmentOnly && !p.isConsignment) return false;
+          return true;
+        });
       return [...ordered, ...missing];
-    } else {
-      return filteredAndSortedProducts;
     }
+    return filteredAndSortedProducts;
   }, [editingId, frozenIds, filteredAndSortedProducts, products, searchTerm, showConsignmentOnly]);
 
   const startEditing = (id: string) => {
-    if (!editingId) {
-        setFrozenIds(filteredAndSortedProducts.map(p => p.id));
-    }
+    if (!editingId) setFrozenIds(filteredAndSortedProducts.map(p => p.id));
     setEditingId(id);
   };
 
-  const stopEditing = () => {
-    setEditingId(null);
-    setFrozenIds([]);
-  };
+  const stopEditing = () => { setEditingId(null); setFrozenIds([]); };
+  const memoUpdateProduct = useCallback(updateProduct, [updateProduct]);
+  const memoDeleteProduct = useCallback(deleteProduct, [deleteProduct]);
+  const memoToggle = useCallback(toggleProductActive, [toggleProductActive]);
+  const memoParseExp = useCallback(parseExpDate, []);
+  const memoFormatDate = useCallback(formatDisplayDate, []);
+
 
   // Calculations for total inventory value (excluding consignments)
   const { totalStockCost, totalExpectedRevenue } = useMemo(() => {
@@ -487,179 +637,21 @@ export default function InventoryTab() {
             <tbody className="divide-y">
               {displayProducts.length === 0 ? (
                 <tr>
-                    <td colSpan={10} className="p-8 text-center text-gray-500">
-                        {searchTerm ? '검색 결과가 없습니다.' : '등록된 상품이 없습니다.'}
-                    </td>
+                  <td colSpan={11} className="p-8 text-center text-gray-500">
+                    {searchTerm ? '검색 결과가 없습니다.' : '등록된 상품이 없습니다.'}
+                  </td>
                 </tr>
-              ) : displayProducts.map((product) => {
-                  const purchasePrice = product.purchasePrice || 0;
-                  const margin = product.price > 0 ? product.price - purchasePrice : 0;
-                  const marginRate = product.price > 0 ? ((margin / product.price) * 100).toFixed(1) : '0';
-                  
-                  return (
-                    <tr key={product.id} className={`${product.isActive ? (product.stock <= 0 ? 'bg-red-50 hover:bg-red-100 text-red-700' : 'bg-white hover:bg-gray-50') : 'bg-gray-50 text-gray-400'} h-[34px] transition-colors`}>
-                      <td className="px-1 align-middle text-center">
-                        <input
-                          type="checkbox"
-                          checked={product.isActive}
-                          onChange={() => toggleProductActive(product.id)}
-                          className="w-4 h-4 accent-[#673ab7] cursor-pointer"
-                        />
-                      </td>
-                      <td className="px-2 align-middle overflow-hidden relative min-w-0">
-                        <input 
-                            type="text" 
-                            value={getEditVal(product, 'name') as string}
-                            onChange={(e) => { startEditing(product.id); handleFieldChange(product, { name: e.target.value }); }}
-                            onFocus={() => startEditing(product.id)}
-                            onBlur={() => commitEdit(product)}
-                            className="w-full bg-transparent border-none focus:ring-1 focus:ring-[#673ab7] rounded px-1 py-0.5 font-medium text-sm truncate focus:whitespace-normal focus:bg-white focus:outline-none"
-                            title={getEditVal(product, 'name') as string}
-                        />
-                      </td>
-                      <td className="px-1 align-middle text-center">
-                        <div className="flex flex-col items-center gap-0.5">
-                            <label className="flex items-center gap-1 cursor-pointer bg-gray-50 px-1.5 py-0.5 rounded border border-gray-200 hover:bg-purple-50 hover:border-purple-200 transition-colors">
-                                <input type="checkbox" className="w-3.5 h-3.5 accent-[#673ab7]" checked={product.isConsignment || false} onChange={(e) => updateProduct({...product, isConsignment: e.target.checked})} />
-                                <span className="text-xs text-gray-600">위탁</span>
-                            </label>
-                            {(product.isConsignment || false) && (
-                                <input 
-                                    type="text" 
-                                    placeholder="업체" 
-                                    value={(getEditVal(product, 'vendorName') as string) || ''} 
-                                    onChange={(e) => { startEditing(product.id); handleFieldChange(product, { vendorName: e.target.value }); }} 
-                                    onFocus={() => startEditing(product.id)}
-                                    onBlur={() => commitEdit(product)}
-                                    className="border-b border-gray-300 text-[10px] p-0.5 outline-none focus:border-[#673ab7] bg-transparent w-14 text-gray-600 text-center" 
-                                />
-                            )}
-                        </div>
-                      </td>
-                      <td className="px-2 align-middle text-center text-xs text-gray-500 whitespace-nowrap">
-                          {product.updatedAt ? new Date(product.updatedAt).toLocaleDateString('ko-KR', {
-                              year: '2-digit', month: '2-digit', day: '2-digit'
-                          }) : '-'}
-                      </td>
-                      <td className="px-1 align-middle text-center">
-                          <div className="flex flex-col items-center">
-                              <input 
-                                  type="text" 
-                                  maxLength={8}
-                                  placeholder="YY-MM-DD"
-                                  value={formatDisplayDate(product.expirationDate)}
-                                  onChange={(e) => updateProduct({...product, expirationDate: e.target.value.replace(/[^0-9]/g, '') || undefined})}
-                                  onFocus={() => startEditing(product.id)}
-                                  onBlur={() => stopEditing()}
-                                  className={`bg-transparent outline-none w-full text-center text-xs font-medium ${(!product.expirationDate || product.expirationDate.length !== 6) ? 'text-gray-400' : (() => {
-                                      const expTime = parseExpDate(product.expirationDate);
-                                      const today = new Date();
-                                      today.setHours(0,0,0,0);
-                                      const diff = Math.floor((expTime - today.getTime()) / (1000 * 3600 * 24));
-                                      return diff < 0 ? 'text-red-700 font-bold' : diff <= 14 ? 'text-red-500 font-bold' : 'text-gray-600';
-                                  })()}`}
-                              />
-                              {product.expirationDate && product.expirationDate.length === 6 && (() => {
-                                  const expTime = parseExpDate(product.expirationDate);
-                                  const today = new Date();
-                                  today.setHours(0,0,0,0);
-                                  const diff = Math.floor((expTime - today.getTime()) / (1000 * 3600 * 24));
-                                  const dDayStr = diff < 0 ? `D+${Math.abs(diff)}` : diff === 0 ? 'D-Day' : `D-${diff}`;
-                                  const colorStr = diff < 0 ? 'text-red-700' : diff <= 14 ? 'text-red-500' : 'text-gray-400';
-                                  return <span className={`text-[10px] font-bold ${colorStr}`}>{dDayStr}</span>;
-                              })()}
-                          </div>
-                      </td>
-                      <td className="px-2 align-middle">
-                         <div className="flex items-center gap-0.5 justify-end">
-                            <input 
-                                 type="number" 
-                                 step="10"
-                                 value={getEditVal(product, 'onlineLowestPrice') as number || ''}
-                                 onChange={(e) => { startEditing(product.id); handleFieldChange(product, { onlineLowestPrice: Number(e.target.value) || undefined }); }}
-                                 onFocus={() => startEditing(product.id)}
-                                 onBlur={() => commitEdit(product)}
-                                 className="w-full bg-transparent border-none focus:ring-1 focus:ring-orange-500 text-orange-600 rounded p-0.5 text-right font-bold text-[11px]"
-                                 placeholder="최저가"
-                             />
-                        </div>
-                      </td>
-                      <td className="px-2 align-middle">
-                         <div className="flex items-center gap-0.5 justify-end">
-                            <input 
-                                 type="number" 
-                                 step="100"
-                                 value={(getEditVal(product, 'purchasePrice') as number) > 0 ? (getEditVal(product, 'purchasePrice') as number) : ''}
-                                 onChange={(e) => { startEditing(product.id); handleFieldChange(product, { purchasePrice: Number(e.target.value) }); }}
-                                 onFocus={() => startEditing(product.id)}
-                                 onBlur={() => commitEdit(product)}
-                                 className="w-full bg-transparent border-none focus:ring-1 focus:ring-[#673ab7] rounded p-0.5 text-right font-bold text-gray-700 text-xs"
-                                 placeholder="0"
-                             />
-                            <span className="text-gray-400 text-[10px]">원</span>
-                        </div>
-                      </td>
-                      <td className="px-2 align-middle">
-                        <div className="flex items-center gap-0.5 justify-end">
-                          <input 
-                              type="number" 
-                              step="100"
-                              value={(getEditVal(product, 'price') as number) > 0 ? (getEditVal(product, 'price') as number) : ''}
-                              onChange={(e) => { startEditing(product.id); handleFieldChange(product, { price: Number(e.target.value) }); }}
-                              onFocus={() => startEditing(product.id)}
-                              onBlur={() => commitEdit(product)}
-                              className={`w-full bg-transparent border-none focus:ring-1 focus:ring-[#673ab7] rounded p-0.5 text-right font-bold text-xs ${product.price === 0 ? 'bg-red-50 text-red-500 placeholder-red-400' : ''}`}
-                              placeholder={product.price === 0 ? "미정" : "0"}
-                          />
-                          {product.price > 0 && <span className="text-gray-800 text-[10px]">원</span>}
-                        </div>
-                      </td>
-                      <td className="px-2 align-middle text-right">
-                        {product.price === 0 ? (
-                            <span className="text-[10px] font-bold text-red-500 bg-red-50 px-1.5 py-0.5 rounded border border-red-100 whitespace-nowrap">판매가 미정</span>
-                        ) : (
-                          <>
-                            <span className={`text-xs font-medium ${margin > 0 ? 'text-green-600' : 'text-red-500'}`}>
-                               {marginRate}%
-                            </span>
-                            <div className="text-[10px] text-gray-400">
-                                ({margin.toLocaleString()})
-                            </div>
-                          </>
-                        )}
-                      </td>
-                      <td className="px-2 align-middle text-right">
-                             <input 
-                                 type="number"
-                                 value={editValues[product.id]?.stock !== undefined 
-                                   ? (editValues[product.id]!.stock === 0 ? '' : editValues[product.id]!.stock as number)
-                                   : (product.stock === 0 ? '' : product.stock)}
-                                 onChange={(e) => { startEditing(product.id); handleFieldChange(product, { stock: Number(e.target.value) }); }}
-                                 onFocus={(e) => { 
-                                   startEditing(product.id);
-                                   // ✅ 재고 0일 때 onFocus 시 빈 칸으로 → 06 버그 방지
-                                   if (product.stock === 0) e.target.value = '';
-                                 }}
-                                 onBlur={() => commitEdit(product, { updatedAt: new Date().toISOString() })}
-                                 className={`w-full text-right bg-transparent border-none focus:ring-1 focus:ring-[#673ab7] rounded p-0.5 text-xs ${product.stock < 5 ? 'text-red-500 font-bold' : ''}`}
-                                 placeholder="0"
-                              />
-                      </td>
-                      <td className="px-1 align-middle text-center">
-                            <button 
-                                onClick={() => {
-                                    if(confirm(`'${product.name}' 상품을 완전히 삭제하시겠습니까?`)) {
-                                        deleteProduct(product.id);
-                                    }
-                                }}
-                                className="text-xs text-red-400 hover:text-red-600 transition-colors"
-                            >
-                                삭제
-                            </button>
-                      </td>
-                    </tr>
-                  );
-              })}
+              ) : displayProducts.map(product => (
+                <ProductRow
+                  key={product.id}
+                  product={product}
+                  updateProduct={memoUpdateProduct}
+                  deleteProduct={memoDeleteProduct}
+                  toggleProductActive={memoToggle}
+                  parseExpDate={memoParseExp}
+                  formatDisplayDate={memoFormatDate}
+                />
+              ))}
             </tbody>
           </table>
         </div>
