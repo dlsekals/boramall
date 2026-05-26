@@ -621,8 +621,8 @@ export default function OrderManagementTab() {
                 💸 일괄 택배비
             </button>
             <button 
-                onClick={() => {
-                    const result = mergeDuplicateOrders();
+                onClick={async () => {
+                    const result = await mergeDuplicateOrders();
                     alert(result.message);
                 }}
                 className="bg-orange-100 text-orange-700 font-bold px-3 py-2 sm:px-4 rounded hover:bg-orange-200 border border-orange-200 shadow-sm flex items-center justify-center gap-1 sm:gap-2 text-sm sm:text-base flex-1 sm:flex-none"

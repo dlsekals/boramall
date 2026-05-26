@@ -80,7 +80,7 @@ interface AppContextType {
   markOrderPaid: (orderId: string, isPaid: boolean) => void;
   updateOrder: (orderId: string, updatedItems: OrderItem[]) => void;
   deleteOrder: (orderId: string) => void;
-  mergeDuplicateOrders: () => { success: boolean; message: string };
+  mergeDuplicateOrders: () => Promise<{ success: boolean; message: string }>;
   mergeSelectiveOrders: (orderIds: string[]) => { success: boolean; message: string };
   addBulkShippingFee: (orderIds: string[]) => void;
   
@@ -520,80 +520,87 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setOrders(prev => prev.filter(o => o.id !== orderId));
   };
 
-  const mergeDuplicateOrders = () => {
+  const mergeDuplicateOrders = async (): Promise<{ success: boolean; message: string }> => {
       let mergedCount = 0;
-      
-      const activeOrders = orders.filter(o => !o.isPaid);
-      const paidOrders = orders.filter(o => o.isPaid);
-      
-      // Group unpaid orders by userId
+
+      // 미입금 주문만 대상 (isArchived 업이 전체 orders 포함)
+      const unpaidOrders = orders.filter(o => !o.isPaid);
+
       const groupedByUserId: Record<string, Order[]> = {};
-      activeOrders.forEach(o => {
+      unpaidOrders.forEach(o => {
           if (!groupedByUserId[o.userId]) groupedByUserId[o.userId] = [];
           groupedByUserId[o.userId].push(o);
       });
-      
-      // Track which order IDs to delete, and updated orders
-      const idsToDelete = new Set<string>();
-      const updatedBaseOrders: Record<string, Order> = {};
+
+      const idsToDelete: string[] = [];
+      const ordersToUpdate: Order[] = [];
 
       Object.keys(groupedByUserId).forEach(userId => {
           const userOrders = groupedByUserId[userId];
           if (userOrders.length > 1) {
-              // Sort to keep the oldest (by ID timestamp)
-              userOrders.sort((a, b) => a.id.localeCompare(b.id));
-              
+              userOrders.sort((a, b) => a.id.localeCompare(b.id)); // 가장 오래된 주문을 기준으로
+
               const baseOrder = userOrders[0];
-              let combinedTotalPrice = baseOrder.totalPrice;
-              const combinedItems: OrderItem[] = baseOrder.items.map(item => ({...item}));
-              
-              // Merge items from all other orders into baseOrder
+              const combinedItems: OrderItem[] = baseOrder.items.map(item => ({ ...item }));
+
               for (let i = 1; i < userOrders.length; i++) {
                   const orderToMerge = userOrders[i];
-                  combinedTotalPrice += orderToMerge.totalPrice;
-                  
                   orderToMerge.items.forEach(itemToMerge => {
                       const existingItemIdx = combinedItems.findIndex(ci => ci.productName === itemToMerge.productName);
                       if (existingItemIdx > -1) {
                           combinedItems[existingItemIdx].quantity += itemToMerge.quantity;
                       } else {
-                          combinedItems.push({...itemToMerge});
+                          combinedItems.push({ ...itemToMerge });
                       }
                   });
-                  
-                  // Mark this order for deletion (do NOT splice here)
-                  idsToDelete.add(orderToMerge.id);
+                  idsToDelete.push(orderToMerge.id);
               }
-              
-              // Store the merged base order
-              updatedBaseOrders[baseOrder.id] = {
+
+              // totalPrice를 items로부터 정확히 재계산 (누적 오류 방지)
+              const recalcTotal = combinedItems.reduce((s, item) => s + item.price * item.quantity, 0);
+
+              ordersToUpdate.push({
                   ...baseOrder,
-                  totalPrice: combinedTotalPrice,
-                  items: combinedItems
-              };
-              
+                  totalPrice: recalcTotal,
+                  items: combinedItems,
+              });
               mergedCount++;
           }
       });
-      
-      if (mergedCount > 0) {
-          // Build the new orders list:
-          // 1. Remove orders marked for deletion
-          // 2. Update base orders with merged data
-          const newOrders = [
-              ...activeOrders
-                  .filter(o => !idsToDelete.has(o.id))
-                  .map(o => updatedBaseOrders[o.id] ?? o),
-              ...paidOrders
-          ];
-          setOrders(newOrders);
+
+      if (mergedCount === 0) {
+          return { success: false, message: '합칠 수 있는 동일인 중복 주문이 없습니다.' };
       }
-      
-      return { 
-          success: mergedCount > 0, 
-          message: mergedCount > 0 ? `${mergedCount}명 회원의 동일인 미입금 주문이 합쳐졌습니다.` : "합칠 수 있는 동일인 중복 주문이 없습니다." 
-      };
+
+      try {
+          // Step 1: 합쳐진 baseOrder들을 DB에 먼저 저장 (upsert)
+          await fetch('/api/orders', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(ordersToUpdate),
+          });
+
+          // Step 2: 병합된 나머지 주문 삭제 (POST 성공 후에만 실행)
+          await Promise.all(
+              idsToDelete.map(id => fetch(`/api/orders?id=${id}`, { method: 'DELETE' }))
+          );
+
+          // Step 3: DB에서 최신 데이터 재로드하여 state 동기화
+          const freshOrders = await fetch('/api/orders').then(res => res.json());
+          if (Array.isArray(freshOrders)) {
+              setOrders(freshOrders);
+          }
+
+          return {
+              success: true,
+              message: `${mergedCount}명 회원의 동일인 미입금 주문이 합쳐졌습니다.`,
+          };
+      } catch (err) {
+          console.error('mergeDuplicateOrders 실패:', err);
+          return { success: false, message: '합치기 중 오류가 발생했습니다. 다시 시도해주세요.' };
+      }
   };
+
 
   const mergeSelectiveOrders = (orderIds: string[]) => {
       if (orderIds.length < 2) return { success: false, message: "2개 이상의 주문을 선택해주세요." };
