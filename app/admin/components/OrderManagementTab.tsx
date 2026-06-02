@@ -173,13 +173,13 @@ export default function OrderManagementTab() {
     return groups;
   },[filteredOrders,sortMode]);
 
-  // ─── Statistics (paid cost만 계산) ───
+  // ─── Statistics: 택배비 제외 (상품 금액만 집계) ───
   const totalOrders=filteredOrders.length;
-  const totalRevenue=customerGroups.reduce((s,g)=>s+g.displayTotal,0);
+  const totalRevenue=customerGroups.reduce((s,g)=>s+g.productTotal,0);      // 택배비 제외
   const paidGroups=customerGroups.filter(g=>g.allPaid);
-  const paidTotal=paidGroups.reduce((s,g)=>s+g.displayTotal,0);
+  const paidTotal=paidGroups.reduce((s,g)=>s+g.productTotal,0);             // 택배비 제외
   const unpaidGroups=customerGroups.filter(g=>!g.allPaid);
-  const unpaidTotal=unpaidGroups.reduce((s,g)=>s+g.displayTotal,0);
+  const unpaidTotal=unpaidGroups.reduce((s,g)=>s+g.productTotal,0);         // 택배비 제외
   const paidRate=totalRevenue>0?((paidTotal/totalRevenue)*100).toFixed(1):'0.0';
 
   // 순이익 = 입금액 - 입금된 주문의 원가만 (미입금은 0)
@@ -561,58 +561,58 @@ export default function OrderManagementTab() {
 
                 {/* ── 상세 펼침: 날짜별 ── */}
                 {expanded&&(
-                  <div className="border-t-2 border-[#673ab7]/20 bg-slate-50">
+                  <div className="border-t-2 border-amber-300 bg-amber-50">
                     {g.dateGroups.map(dg=>{
                       const dateExp=expandedDates.has(`${g.userId}__${dg.dateKey}`);
                       return(
-                        <div key={dg.dateKey} className="border-b border-gray-100 last:border-0">
+                        <div key={dg.dateKey} className="border-b border-amber-200 last:border-0">
 
                           {/* 날짜 요약 행 */}
                           <button onClick={()=>toggleDate(g.userId,dg.dateKey)}
-                            className={`w-full flex items-center justify-between px-6 py-2.5 transition-colors text-left ${dg.isPaid?'bg-green-50/60 hover:bg-green-100/60':'bg-gray-50/80 hover:bg-gray-100'}`}>
+                            className={`w-full flex items-center justify-between px-6 py-2.5 transition-colors text-left ${dg.isPaid?'bg-green-100/70 hover:bg-green-200/60':'bg-yellow-50 hover:bg-yellow-100'}`}>
                             <div className="flex items-center gap-2.5 flex-1 min-w-0">
-                              <span className="text-xs font-black text-[#673ab7] bg-purple-50 px-2.5 py-0.5 rounded-full border border-purple-200 shrink-0">
+                              <span className="text-xs font-black text-[#5c2e91] bg-purple-100 px-2.5 py-0.5 rounded-full border border-purple-300 shrink-0">
                                 {dg.displayDate}
                               </span>
-                              <span className="text-xs text-gray-500 truncate">
+                              <span className="text-xs text-gray-800 font-semibold truncate">
                                 {dg.productItems.slice(0,3).map(i=>`${i.productName}×${i.quantity}`).join(' / ')}
                                 {dg.productItems.length>3&&` 외 ${dg.productItems.length-3}개`}
                               </span>
-                              {dg.isPaid&&<span className="text-xs text-green-600 shrink-0">✅</span>}
+                              {dg.isPaid&&<span className="text-xs text-green-700 shrink-0">✅</span>}
                             </div>
                             <div className="flex items-center gap-2 shrink-0 ml-2">
-                              <span className="font-bold text-sm text-gray-800 font-mono w-24 text-right">{dg.subtotal.toLocaleString()}원</span>
+                              <span className="font-bold text-sm text-gray-900 font-mono w-24 text-right">{dg.subtotal.toLocaleString()}원</span>
                               <button
                                 onClick={e=>{e.stopPropagation();handleMarkDatePaid(dg.orders,!dg.isPaid);}}
-                                className={`text-xs px-2 py-0.5 rounded font-bold border ${dg.isPaid?'bg-gray-100 text-gray-500 border-gray-200 hover:bg-red-50 hover:text-red-500':'bg-white text-gray-600 border-gray-300 hover:border-green-400 hover:text-green-600'}`}>
+                                className={`text-xs px-2 py-0.5 rounded font-bold border ${dg.isPaid?'bg-gray-200 text-gray-600 border-gray-300 hover:bg-red-50 hover:text-red-500':'bg-white text-gray-700 border-gray-400 hover:border-green-500 hover:text-green-700'}`}>
                                 {dg.isPaid?'취소':'입금'}
                               </button>
-                              <span className="text-gray-400 text-xs">{dateExp?'▲':'▼'}</span>
+                              <span className="text-gray-600 text-xs">{dateExp?'▲':'▼'}</span>
                             </div>
                           </button>
 
                           {/* 날짜 상세 품목 */}
                           {dateExp&&(
-                            <div className="px-6 pb-3 pt-2 bg-white border-t border-gray-100">
+                            <div className="px-6 pb-3 pt-2 bg-yellow-50/80 border-t border-amber-200">
                               <div className="flex flex-wrap gap-1.5 mb-3">
                                 {dg.productItems.map((item,idx)=>(
-                                  <span key={idx} className="inline-flex items-center text-xs px-2.5 py-1 rounded-full bg-gray-50 border border-gray-200 text-gray-700">
+                                  <span key={idx} className="inline-flex items-center text-xs px-2.5 py-1 rounded-full bg-white border border-amber-300 text-gray-900 font-semibold shadow-sm">
                                     {item.productName}
-                                    <span className="ml-1 font-bold">×{item.quantity}</span>
-                                    <span className="ml-1.5 text-gray-400">{(item.price*item.quantity).toLocaleString()}원</span>
+                                    <span className="ml-1 font-black text-gray-900">×{item.quantity}</span>
+                                    <span className="ml-1.5 text-gray-600 font-bold">{(item.price*item.quantity).toLocaleString()}원</span>
                                   </span>
                                 ))}
                               </div>
                               <div className="flex gap-2">
                                 <button onClick={()=>openDateEdit(g,dg)}
-                                  className="text-xs bg-blue-50 text-blue-700 px-3 py-1.5 rounded border border-blue-200 hover:bg-blue-100 font-bold">✏️ 수정</button>
+                                  className="text-xs bg-blue-50 text-blue-800 px-3 py-1.5 rounded border border-blue-300 hover:bg-blue-100 font-bold">✏️ 수정</button>
                                 <button onClick={()=>{
                                   const a=prompt('배송 주소 변경:',dg.orders[0]?.shippingAddress||'');
                                   if(a!==null) dg.orders.forEach(o=>updateOrderShippingAddress(o.id,a));
-                                }} className="text-xs bg-sky-50 text-sky-600 px-3 py-1.5 rounded border border-sky-200 hover:bg-sky-100 font-bold">🏠 배송지</button>
+                                }} className="text-xs bg-sky-50 text-sky-700 px-3 py-1.5 rounded border border-sky-300 hover:bg-sky-100 font-bold">🏠 배송지</button>
                                 <button onClick={()=>handleDeleteDate(dg)}
-                                  className="text-xs bg-red-50 text-red-600 px-3 py-1.5 rounded border border-red-200 hover:bg-red-100 font-bold">🗑 삭제</button>
-                                {dg.orders.length>1&&<span className="text-xs text-gray-400 self-center">({dg.orders.length}건 합산)</span>}
+                                  className="text-xs bg-red-50 text-red-700 px-3 py-1.5 rounded border border-red-300 hover:bg-red-100 font-bold">🗑 삭제</button>
+                                {dg.orders.length>1&&<span className="text-xs text-gray-700 font-semibold self-center">({dg.orders.length}건 합산)</span>}
                               </div>
                             </div>
                           )}
@@ -622,15 +622,15 @@ export default function OrderManagementTab() {
 
                     {/* 택배비 (있을 때만) */}
                     {g.hasShipping&&(
-                      <div className="px-6 py-2 flex items-center justify-between bg-indigo-50/50 border-t border-indigo-100">
-                        <span className="text-xs text-indigo-600 font-bold">📦 택배비 (1회)</span>
-                        <span className="text-xs font-bold text-indigo-700 font-mono w-24 text-right">{SHIPPING_PRICE.toLocaleString()}원</span>
+                      <div className="px-6 py-2 flex items-center justify-between bg-indigo-100/60 border-t border-indigo-200">
+                        <span className="text-xs text-indigo-800 font-bold">📦 택배비 (1회) — 매출 미포함</span>
+                        <span className="text-xs font-bold text-indigo-800 font-mono w-24 text-right">{SHIPPING_PRICE.toLocaleString()}원</span>
                       </div>
                     )}
 
                     {/* 합계 */}
-                    <div className="px-6 py-2.5 flex items-center justify-between bg-gray-100 border-t border-gray-200">
-                      <span className="text-xs font-bold text-gray-600">기간 합계</span>
+                    <div className="px-6 py-2.5 flex items-center justify-between bg-amber-100 border-t border-amber-300">
+                      <span className="text-sm font-bold text-gray-800">청구 합계 <span className="text-xs font-normal text-gray-500">(상품+택배)</span></span>
                       <span className="font-black text-[#673ab7] text-base font-mono">{g.displayTotal.toLocaleString()}원</span>
                     </div>
                   </div>
