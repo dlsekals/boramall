@@ -94,7 +94,8 @@ interface AppContextType {
   
   // Admin Actions
   resetOrders: (archive?: boolean) => void;
-  archiveOrders: () => void; // Explicit archive
+  archiveOrders: () => void;
+  archiveOrdersByIds: (orderIds: string[]) => Promise<void>;
   refreshOrders: () => Promise<void>;
   refreshProducts: () => Promise<void>;
   refreshUsers: () => Promise<void>;
@@ -523,49 +524,60 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const mergeDuplicateOrders = async (): Promise<{ success: boolean; message: string }> => {
       let mergedCount = 0;
 
-      // 미입금 주문만 대상 (isArchived 업이 전체 orders 포함)
+      // ✅ 미입금 주문만 대상
       const unpaidOrders = orders.filter(o => !o.isPaid);
 
-      const groupedByUserId: Record<string, Order[]> = {};
+      // ✅ [버그 수정] userId + 날짜(createdAt) 기준으로 그룹화
+      // 이전 버그: userId만으로 그룹화 → 목/금/토 3일치 주문이 하나로 합쳐져 매출 급감
+      // 수정 후: 같은 날 주문만 합침 (날짜가 다른 주문은 별도 유지)
+      const groupedByUserAndDate: Record<string, Order[]> = {};
       unpaidOrders.forEach(o => {
-          if (!groupedByUserId[o.userId]) groupedByUserId[o.userId] = [];
-          groupedByUserId[o.userId].push(o);
+          // 날짜 문자열 정규화 (예: "2026. 5. 29." → "2026.5.29")
+          const normalizedDate = (o.createdAt || '').replace(/\s/g, '').replace(/\.+$/, '');
+          const key = `${o.userId}__${normalizedDate}`;
+          if (!groupedByUserAndDate[key]) groupedByUserAndDate[key] = [];
+          groupedByUserAndDate[key].push(o);
       });
+
+      // 합칠 대상 미리 파악 (사용자에게 확인)
+      const mergeCandidates = Object.entries(groupedByUserAndDate)
+          .filter(([, userDateOrders]) => userDateOrders.length > 1);
+
+      if (mergeCandidates.length === 0) {
+          return { success: false, message: '합칠 수 있는 동일인 같은날 중복 주문이 없습니다.\n\n⚠️ 날짜가 다른 주문(목/금/토 각각 입력된 주문)은 별도 주문으로 유지됩니다.' };
+      }
 
       const idsToDelete: string[] = [];
       const ordersToUpdate: Order[] = [];
 
-      Object.keys(groupedByUserId).forEach(userId => {
-          const userOrders = groupedByUserId[userId];
-          if (userOrders.length > 1) {
-              userOrders.sort((a, b) => a.id.localeCompare(b.id)); // 가장 오래된 주문을 기준으로
+      mergeCandidates.forEach(([, userDateOrders]) => {
+          userDateOrders.sort((a, b) => a.id.localeCompare(b.id)); // 가장 오래된 주문을 기준으로
 
-              const baseOrder = userOrders[0];
-              const combinedItems: OrderItem[] = baseOrder.items.map(item => ({ ...item }));
+          const baseOrder = userDateOrders[0];
+          const combinedItems: OrderItem[] = baseOrder.items.map(item => ({ ...item }));
 
-              for (let i = 1; i < userOrders.length; i++) {
-                  const orderToMerge = userOrders[i];
-                  orderToMerge.items.forEach(itemToMerge => {
-                      const existingItemIdx = combinedItems.findIndex(ci => ci.productName === itemToMerge.productName);
-                      if (existingItemIdx > -1) {
-                          combinedItems[existingItemIdx].quantity += itemToMerge.quantity;
-                      } else {
-                          combinedItems.push({ ...itemToMerge });
-                      }
-                  });
-                  idsToDelete.push(orderToMerge.id);
-              }
-
-              // totalPrice를 items로부터 정확히 재계산 (누적 오류 방지)
-              const recalcTotal = combinedItems.reduce((s, item) => s + item.price * item.quantity, 0);
-
-              ordersToUpdate.push({
-                  ...baseOrder,
-                  totalPrice: recalcTotal,
-                  items: combinedItems,
+          for (let i = 1; i < userDateOrders.length; i++) {
+              const orderToMerge = userDateOrders[i];
+              orderToMerge.items.forEach(itemToMerge => {
+                  const existingItemIdx = combinedItems.findIndex(ci => ci.productName === itemToMerge.productName);
+                  if (existingItemIdx > -1) {
+                      combinedItems[existingItemIdx].quantity += itemToMerge.quantity;
+                  } else {
+                      combinedItems.push({ ...itemToMerge });
+                  }
               });
-              mergedCount++;
+              idsToDelete.push(orderToMerge.id);
           }
+
+          // totalPrice를 items로부터 정확히 재계산 (누적 오류 방지)
+          const recalcTotal = combinedItems.reduce((s, item) => s + item.price * item.quantity, 0);
+
+          ordersToUpdate.push({
+              ...baseOrder,
+              totalPrice: recalcTotal,
+              items: combinedItems,
+          });
+          mergedCount++;
       });
 
       if (mergedCount === 0) {
@@ -593,7 +605,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
           return {
               success: true,
-              message: `${mergedCount}명 회원의 동일인 미입금 주문이 합쳐졌습니다.`,
+              message: `✅ ${mergedCount}건의 같은날 동일인 미입금 주문이 합쳐졌습니다.\n\n⚠️ 날짜가 다른 주문(목/금/토 각각의 주문)은 그대로 유지됩니다.`,
           };
       } catch (err) {
           console.error('mergeDuplicateOrders 실패:', err);
@@ -754,6 +766,25 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
      }
   };
 
+  const archiveOrdersByIds = async (orderIds: string[]) => {
+    if (orderIds.length === 0) return;
+    try {
+      // isArchived=true로 각 주문 upsert
+      const ordersToArchive = orders
+        .filter(o => orderIds.includes(o.id))
+        .map(o => ({ ...o, isArchived: true }));
+      if (ordersToArchive.length === 0) return;
+      await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(ordersToArchive),
+      });
+      setOrders(prev => prev.map(o => orderIds.includes(o.id) ? { ...o, isArchived: true } : o));
+    } catch (err) {
+      console.error('archiveOrdersByIds 실패:', err);
+    }
+  };
+
   const resetOrders = async (archive = true) => {
     if (archive && orders.length > 0) {
         await archiveOrders();
@@ -775,7 +806,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       
       createOrder, markOrderPaid, updateOrder, deleteOrder, mergeDuplicateOrders, mergeSelectiveOrders, addBulkShippingFee,
       updateDeliveryStatus, updateTrackingNumber, updateOrderShippingAddress, bulkUpdateTracking, markOrdersAsExported, processOrderCancellation,
-      resetOrders, archiveOrders, refreshOrders, refreshProducts, refreshUsers
+      resetOrders, archiveOrders, archiveOrdersByIds, refreshOrders, refreshProducts, refreshUsers
     }}>
       {children}
     </AppContext.Provider>

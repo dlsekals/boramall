@@ -76,68 +76,59 @@ export default function InvoiceTemplate({ data, hideButtons = false, customId }:
 
 
   // Theme Colors
-  const themeColor = "bg-[#4527a0]"; // Luxurious Deep Purple
+  const themeColor = "bg-[#4527a0]";
   const textColor = "text-[#311b92]";
 
   return (
-    <div id={elementId} className="bg-white max-w-2xl mx-auto shadow-lg relative min-h-[800px] flex flex-col overflow-hidden sm:overflow-visible">
-      
-      {/* Paid Stamp */}
+    <div id={elementId} className="bg-white max-w-2xl mx-auto shadow-lg relative min-h-[700px] flex flex-col overflow-hidden sm:overflow-visible">
+
+      {/* 입금완료 스탬프 */}
       {data.isPaid && (
-          <div className="absolute top-40 right-10 border-4 border-red-500 text-red-500 font-black text-5xl p-4 transform -rotate-12 opacity-70 pointer-events-none select-none z-10 rounded-lg">
-              입금 완료
-          </div>
+        <div className="absolute top-32 right-8 border-4 border-red-500 text-red-500 font-black text-4xl px-4 py-2 transform -rotate-12 opacity-60 pointer-events-none select-none z-10 rounded-lg">
+          입금 완료
+        </div>
       )}
 
-      {/* Header */}
-      <div className="px-4 sm:px-8 pt-6 pb-2 flex justify-between items-start border-b-2 border-transparent">
-        <div className="flex-1 flex items-center pt-2">
-            {/* Logo: base64 properly background-stripped natively */}
-            <img src={cleanLogo} alt="보라몰" className="h-28 lg:h-32 object-contain transform scale-110 origin-left" />
+      {/* ===== 콤팩트 헤더 (1줄) ===== */}
+      <div className="px-5 pt-4 pb-3 flex items-center justify-between border-b-2 border-[#ede7f6]">
+        {/* 좌측: 로고 */}
+        <div className="flex items-center gap-2 shrink-0">
+          <img src={cleanLogo} alt="보라몰" className="h-16 object-contain" />
         </div>
-        <div className="flex-1 flex flex-col items-end justify-start gap-2 pt-2">
-            <div className="flex items-center gap-2 mb-2 pr-2">
-                <div className={`${themeColor} text-white px-3 py-1 rounded text-[10px] font-bold tracking-widest whitespace-nowrap`}>날짜</div>
-                <div className="font-bold text-gray-700 text-sm tracking-widest bg-gray-50 px-4 py-1 rounded whitespace-nowrap">{data.date}</div>
-            </div>
-            <h2 className={`text-3xl font-black ${textColor} opacity-40 uppercase tracking-widest`}>주문내역</h2>
+
+        {/* 중앙: 청구서 제목 (워터마크) */}
+        <h2 className={`text-4xl font-black ${textColor} opacity-20 uppercase tracking-[0.3em] select-none`}>
+          청구서
+        </h2>
+
+        {/* 우측: 날짜 + 판매자 정보 */}
+        <div className="flex flex-col items-end gap-1 shrink-0 text-right">
+          <div className="flex items-center gap-1.5">
+            <span className={`${themeColor} text-white px-2 py-0.5 rounded text-[9px] font-bold tracking-widest`}>날짜</span>
+            <span className="font-bold text-gray-700 text-xs bg-gray-50 px-2.5 py-0.5 rounded">{data.date}</span>
+          </div>
+          <div className="text-[10px] text-gray-400 leading-tight">
+            <span className="font-medium">파주시 월롱면 도감로172번길 44-10</span>
+          </div>
+          <div className="text-[10px] text-gray-500 font-bold">010-6269-9612</div>
         </div>
       </div>
 
-      {/* Addresses */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-12 px-5 sm:px-12 pb-4 pt-4 sm:pt-1">
-          <div>
-              <h3 className={`font-bold text-[13px] mb-1.5 tracking-wider ${textColor}`}>판매자</h3>
-              <div className={`h-0.5 w-full bg-[#311b92] opacity-20 mb-2`}></div>
-              <p className="font-black text-gray-800 text-[18px] mb-1.5">보라몰</p>
-              <div className="flex flex-col gap-0.5 mt-1">
-                  <p className="text-gray-500 text-[12px] font-medium tracking-tight flex items-center gap-1">🏠 파주시 월롱면 도감로172번길 44-10</p>
-                  <p className="text-gray-500 text-[12px] font-medium tracking-tight flex items-center gap-1">📞 010-6269-9612</p>
-              </div>
-          </div>
-          <div>
-              {/* Buyer */}
-              <div className="flex flex-col">
-                <span className="font-bold text-[13px] mb-1.5 tracking-wider text-[#311b92]">구매자</span>
-                <div className={`h-0.5 w-full bg-[#311b92] opacity-20 mb-2`}></div>
-                
-                <span className="font-black text-gray-800 text-[18px] mb-1.5 flex items-baseline gap-1.5">
-                  {data.customerName} 님 
-                  <span className="text-gray-500 text-[14px] font-bold tracking-tight">
-                    (@{data.customerNickname ? data.customerNickname.replace(/^@/, '') : '닉네임없음'})
-                  </span>
-                </span>
-                
-                <div className="flex flex-col gap-1 mt-1 bg-gray-50 p-2 rounded border border-gray-100">
-                    <span className="text-gray-800 text-[13px] leading-tight tracking-tight font-bold flex items-center gap-1">
-                      📞 {data.customerPhone || '전화번호 미기입'}
-                    </span>
-                    <span className="text-gray-600 text-[12px] leading-tight break-keep flex items-start gap-1">
-                      🏠 {data.address || '주소 미기입'}
-                    </span>
-                </div>
-              </div>
-          </div>
+      {/* ===== 구매자 정보 (한 줄 바) ===== */}
+      <div className="bg-[#f8f7ff] px-5 py-2.5 border-b border-[#e8e4f5] flex flex-wrap items-center gap-x-4 gap-y-1">
+        <span className={`text-[11px] font-black ${textColor} shrink-0`}>구매자</span>
+        <span className="text-gray-800 text-[12px] font-black">
+          {data.customerName} 님
+          <span className="text-gray-500 font-bold ml-1 text-[11px]">
+            (@{data.customerNickname ? data.customerNickname.replace(/^@/, '') : '닉네임없음'})
+          </span>
+        </span>
+        {data.customerPhone && (
+          <span className="text-gray-600 text-[11px] font-medium">📞 {data.customerPhone}</span>
+        )}
+        {data.address && (
+          <span className="text-gray-500 text-[11px] truncate max-w-xs">🏠 {data.address}</span>
+        )}
       </div>
 
       {/* Table — dateGroups가 있으면 날짜별 합산 청구서, 없으면 기존 단일 청구서 */}
@@ -241,16 +232,11 @@ export default function InvoiceTemplate({ data, hideButtons = false, customId }:
       <div className="flex-1"></div>
 
       {/* Footer / Payment Methods */}
-      <div className="bg-[#f9f9fb] w-full pt-6 pb-6 px-4 sm:px-12 border-t border-gray-100 break-inside-avoid shadow-inner mt-auto">
-          <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between gap-6 sm:gap-0">
-              <div className="text-center sm:text-left w-full sm:flex-1 sm:pr-4 pt-0 sm:pt-3">
-                  <p className="text-[13px] font-bold text-[#ff5252] break-keep leading-snug mb-3">
-                    * 입금은 방송 다음날 오후 1시이전 미입금시<br className="hidden sm:block"/>
-                    주문이 자동 취소 됩니다.
-                  </p>
-                  <p className="text-[12px] font-bold text-gray-500 break-keep leading-snug">
-                    * 사업자 번호로 영수증 발행 원하실 경우,<br className="hidden sm:block"/>
-                    따로 기입해 주시기 바랍니다.
+      <div className="bg-[#f9f9fb] w-full pt-5 pb-5 px-4 sm:px-8 border-t border-gray-100 break-inside-avoid shadow-inner mt-auto">
+          <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between gap-4 sm:gap-0">
+              <div className="text-left w-full sm:flex-1 sm:pr-4 flex flex-col justify-center">
+                  <p className="text-[11px] font-medium text-gray-400 break-keep leading-snug">
+                    * 사업자 번호로 영수증 발행 원하실 경우, 따로 기입해 주시기 바랍니다.
                   </p>
               </div>
               

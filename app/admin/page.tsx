@@ -11,10 +11,9 @@ import OrderManagementTab from './components/OrderManagementTab';
 import OrderItemStatusTab from './components/OrderItemStatusTab';
 import UserManagementTab from './components/UserManagementTab';
 import DashboardTab from './components/DashboardTab';
-import DeliveryManagementTab from './components/DeliveryManagementTab';
 import AlertsTab from './components/AlertsTab';
 
-type TabId = 'users' | 'inventory' | 'entry' | 'management' | 'itemstatus' | 'delivery' | 'alerts' | 'dashboard';
+type TabId = 'users' | 'inventory' | 'entry' | 'management' | 'itemstatus' | 'alerts' | 'dashboard';
 
 // 하단 바에 표시할 주요 5개 탭
 const BOTTOM_TABS = [
@@ -32,7 +31,6 @@ const ALL_TABS = [
   { id: 'entry',      icon: '⚡', label: '주문 입력' },
   { id: 'management', icon: '🧾', label: '주문 내역' },
   { id: 'itemstatus', icon: '📋', label: '주문 물품 현황' },
-  { id: 'delivery',   icon: '🚚', label: '배송 관리' },
   { id: 'alerts',     icon: '🔔', label: '관리 알림' },
   { id: 'dashboard',  icon: '📊', label: '통계/대시보드' },
 ] as const;
@@ -40,7 +38,6 @@ const ALL_TABS = [
 // 더보기 드로어에 표시할 탭
 const MORE_TABS = [
   { id: 'itemstatus', icon: '📋', label: '주문 물품 현황' },
-  { id: 'delivery',   icon: '🚚', label: '배송 관리' },
   { id: 'alerts',     icon: '🔔', label: '관리 알림' },
   { id: 'dashboard',  icon: '📊', label: '통계/대시보드' },
 ] as const;
@@ -216,7 +213,7 @@ export default function AdminPage() {
           {activeTab === 'entry'      && <OrderEntryTab />}
           {activeTab === 'management' && <OrderManagementTab />}
           {activeTab === 'itemstatus' && <OrderItemStatusTab />}
-          {activeTab === 'delivery'   && <DeliveryManagementTab />}
+
           {activeTab === 'alerts'     && <AlertsTab />}
           {activeTab === 'dashboard'  && <DashboardTab />}
         </main>
