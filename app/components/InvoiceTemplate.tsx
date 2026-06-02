@@ -1,14 +1,24 @@
 "use client";
 
 import { boramallLogo, saemaeulLogo } from './logos';
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
+
+export interface InvoiceDateGroup {
+  date: string;    // 표시용 날짜 ex) "6/3(목)"
+  items: {
+    name: string;
+    quantity: number;
+    price: number;
+  }[];
+  subtotal: number;
+}
 
 export interface InvoiceData {
   customerName: string;
   customerPhone?: string;
   customerNickname?: string;
   address: string;
-  date: string;
+  date: string;       // 단일 청구서의 날짜, 또는 기간 범위 표시 ex) "6/3~6/5"
   items: {
     name: string;
     quantity: number;
@@ -19,6 +29,8 @@ export interface InvoiceData {
   accountNumber: string;
   accountHolder: string;
   isPaid?: boolean;
+  /** 날짜별 그룹 데이터가 있으면 합산 청구서로 렌더링됩니다 */
+  dateGroups?: InvoiceDateGroup[];
 }
 
 interface InvoiceTemplateProps {
@@ -128,8 +140,59 @@ export default function InvoiceTemplate({ data, hideButtons = false, customId }:
           </div>
       </div>
 
-      {/* Table */}
+      {/* Table — dateGroups가 있으면 날짜별 합산 청구서, 없으면 기존 단일 청구서 */}
       <div className="px-2 sm:px-8 pb-3 overflow-x-auto">
+
+        {data.dateGroups && data.dateGroups.length > 0 ? (
+          /* ── 날짜별 그룹 렌더링 (합산 청구서) ── */
+          <div className="space-y-0">
+            <table className="w-full text-left border-collapse table-fixed mt-1">
+              <thead>
+                <tr className={`${themeColor} text-white`}>
+                  <th className="py-1 px-4 rounded-tl-md font-bold text-[11px] w-[50%]">물품</th>
+                  <th className="py-1 px-4 text-center font-bold text-[11px] whitespace-nowrap w-[15%]">수량</th>
+                  <th className="py-1 px-4 text-center font-bold text-[11px] whitespace-nowrap w-[15%]">단가</th>
+                  <th className="py-1 px-4 rounded-tr-md text-center font-bold text-[11px] whitespace-nowrap w-[20%]">합계</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.dateGroups.map((group, groupIdx) => (
+                  <React.Fragment key={`group-${groupIdx}`}>
+                    {/* 날짜 구분 헤더 행 */}
+                    <tr key={`group-header-${groupIdx}`} className="bg-[#ede7f6]">
+                      <td colSpan={4} className="py-1 px-4">
+                        <span className="font-black text-[#4527a0] text-[11px] tracking-wider">
+                          📅 {group.date}
+                        </span>
+                        <span className="text-[#7c4dff] text-[10px] font-bold ml-2">
+                          소계: {group.subtotal.toLocaleString()}원
+                        </span>
+                      </td>
+                    </tr>
+                    {/* 해당 날짜 품목 */}
+                    {group.items.map((item, itemIdx) => (
+                      <tr key={`group-${groupIdx}-item-${itemIdx}`} className="border-b border-gray-100">
+                        <td className="py-1.5 px-4 font-black text-gray-900 text-[12.5px] break-words leading-tight pl-6">
+                          {item.name}
+                        </td>
+                        <td className="py-1.5 px-4 text-center font-bold text-gray-800 whitespace-nowrap text-[11.5px]">
+                          {item.quantity}
+                        </td>
+                        <td className="py-1.5 px-4 text-center font-bold text-gray-800 whitespace-nowrap text-[11.5px]">
+                          {item.price.toLocaleString()}
+                        </td>
+                        <td className="py-1.5 px-4 text-center font-bold text-gray-800 whitespace-nowrap text-[11.5px]">
+                          {(item.price * item.quantity).toLocaleString()}
+                        </td>
+                      </tr>
+                    ))}
+                  </React.Fragment>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          /* ── 기존 단일 청구서 렌더링 ── */
           <table className="w-full text-left border-collapse table-fixed mt-1">
             <thead>
               <tr className={`${themeColor} text-white`}>
@@ -158,19 +221,20 @@ export default function InvoiceTemplate({ data, hideButtons = false, customId }:
               ))}
             </tbody>
           </table>
-          
-          {/* Total Price Right Aligned */}
-          <div className="flex justify-end items-end mt-4 mb-2 pr-2 sm:pr-4">
-              <div className="flex flex-col items-end mr-3 mb-0.5">
-                  <span className="font-extrabold text-gray-800 text-base">총금액</span>
-                  <span className="text-[10px] font-bold text-gray-400 mt-[-2px]">(VAT 포함)</span>
-              </div>
-              <div className="bg-[#ede7f6] px-3 py-1 rounded-lg border border-[#d1c4e9] shadow-sm">
-                  <span className="font-black text-xl text-[#311b92] tracking-tight">
-                      {data.totalPrice.toLocaleString()}<span className="text-lg font-black ml-1 text-[#311b92]">원</span>
-                  </span>
-              </div>
-          </div>
+        )}
+
+        {/* 총금액 */}
+        <div className="flex justify-end items-end mt-4 mb-2 pr-2 sm:pr-4">
+            <div className="flex flex-col items-end mr-3 mb-0.5">
+                <span className="font-extrabold text-gray-800 text-base">총금액</span>
+                <span className="text-[10px] font-bold text-gray-400 mt-[-2px]">(VAT 포함)</span>
+            </div>
+            <div className="bg-[#ede7f6] px-3 py-1 rounded-lg border border-[#d1c4e9] shadow-sm">
+                <span className="font-black text-xl text-[#311b92] tracking-tight">
+                    {data.totalPrice.toLocaleString()}<span className="text-lg font-black ml-1 text-[#311b92]">원</span>
+                </span>
+            </div>
+        </div>
       </div>
 
       {/* Spacer to push footer down if needed */}

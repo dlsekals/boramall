@@ -15,7 +15,7 @@ function getSolapiAuth() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { orderId, name, phone, totalPrice } = body;
+    const { orderId, name, phone, totalPrice, invoiceUrl } = body;
 
     const apiKey = 'NCSHPOKWJ31REDXX';
     if (!apiKey) {
@@ -37,7 +37,7 @@ export async function POST(request: Request) {
           variables: {
             "#{이름}": name,
             "#{총금액}": parseInt(totalPrice, 10).toLocaleString() + "원",
-            "#{청구서링크}": `${domainPart}/invoice/${orderId}`
+            "#{청구서링크}": invoiceUrl || `${domainPart}/invoice/${orderId}`
           }
         }
       }
