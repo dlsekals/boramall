@@ -254,6 +254,18 @@ export default function OrderManagementTab() {
     }
   };
 
+  // 모든 고객에게 택배비 일괄 추가 (미청구 고객만)
+  const handleBulkShippingAll = () => {
+    const without = customerGroups.filter(g => !g.hasShipping);
+    if (!without.length) { alert('모든 고객에게 이미 택배비가 청구되어 있습니다.'); return; }
+    if (!confirm(`택배비 미청구 고객 ${without.length}명에게 일괄 택배비 4,000원을 추가하시겠습니까?`)) return;
+    without.forEach(g => {
+      const first = [...g.orders].sort((a,b) => a.id.localeCompare(b.id))[0];
+      addBulkShippingFee([first.id]);
+    });
+    alert(`${without.length}명에게 택배비가 추가되었습니다.`);
+  };
+
   const openDateEdit=(g:CustomerGroup,dg:DateGroup)=>{
     setEditState({dateKey:dg.dateKey,userId:g.userId,items:dg.productItems.map(i=>({...i})),orderIds:dg.orders.map(o=>o.id)});
   };
@@ -450,6 +462,8 @@ export default function OrderManagementTab() {
             className="border border-gray-300 rounded px-2 py-1 text-sm w-36 outline-none focus:ring-1 focus:ring-[#673ab7]"/>
         </div>
         <div className="flex flex-wrap gap-2 xl:justify-end">
+          <button onClick={handleBulkShippingAll} disabled={!customerGroups.length}
+            className="bg-indigo-600 text-white px-3 py-2 rounded font-bold hover:bg-indigo-700 disabled:bg-gray-400 text-sm whitespace-nowrap">🚚 일괄 택배비 청구</button>
           <button onClick={handleReset} disabled={!filteredOrders.length}
             className="bg-gray-700 text-white px-3 py-2 rounded font-bold hover:bg-gray-900 disabled:bg-gray-300 text-sm">🔄 초기화</button>
           <button onClick={handleLotteExcel} disabled={isDownloading||!filteredOrders.length}
@@ -498,55 +512,56 @@ export default function OrderManagementTab() {
 
                   {/* 우측: 금액 + 상태 + 버튼 */}
                   <div className="flex items-center gap-2 flex-wrap shrink-0" onClick={e=>e.stopPropagation()}>
-                    {/* 금액 (고정폭 박스로 정렬 보장) */}
-                    <div className="text-right min-w-[110px]">
-                      <span className="font-black text-gray-900 text-[15px] font-mono">{g.displayTotal.toLocaleString()}원</span>
-                      {g.hasShipping&&(
-                        <span className="block text-[10px] text-indigo-500 leading-none">배송비 포함</span>
-                      )}
+
+                    {/* 금액: 항상 같은 높이 유지 (배송비 유무 관계없이) */}
+                    <div className="text-right" style={{minWidth:'130px'}}>
+                      <span className="font-black text-gray-900 text-lg font-mono leading-tight">{g.displayTotal.toLocaleString()}원</span>
+                      {/* 항상 같은 높이 확보 — 배송비 없으면 투명 텍스트 */}
+                      <span className={`block text-[10px] leading-none mt-0.5 ${g.hasShipping?'text-indigo-500':'text-transparent select-none'}`}>
+                        배송비 포함
+                      </span>
                     </div>
 
-                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${statusStyle}`}>{statusLabel}</span>
+                    {/* 입금 체크박스 (클릭 한번으로 전체 입금/취소) */}
+                    <label className="flex items-center gap-1.5 cursor-pointer select-none" title={g.allPaid?'클릭하면 입금 취소':'클릭하면 전체 입금 처리'}>
+                      <input
+                        type="checkbox"
+                        checked={g.allPaid}
+                        onChange={e=>handleMarkAllPaid(g.orders, e.target.checked)}
+                        onClick={e=>e.stopPropagation()}
+                        className="w-4 h-4 accent-green-500 cursor-pointer"
+                      />
+                      <span className={`text-xs font-bold whitespace-nowrap ${g.allPaid?'text-green-700':g.anyPaid?'text-yellow-700':'text-red-600'}`}>
+                        {g.allPaid?'입금완료':g.anyPaid?'일부입금':'미입금'}
+                      </span>
+                    </label>
 
-                    {/* 택배비 토글 버튼 */}
+                    {/* 택배비 토글 — stopPropagation 직접 부착 */}
                     <button
-                      onClick={()=>handleToggleShipping(g)}
-                      className={`text-xs font-bold px-2 py-1 rounded border transition-all ${g.hasShipping?'bg-indigo-600 text-white border-indigo-700 hover:bg-indigo-700':'bg-gray-100 text-gray-500 border-gray-300 hover:bg-gray-200'}`}
-                      title={g.hasShipping?'택배 배송 (클릭 시 직접수령으로 변경)':'직접 수령 (클릭 시 택배비 추가)'}
+                      onClick={e=>{e.stopPropagation();handleToggleShipping(g);}}
+                      className={`text-xs font-bold px-2.5 py-1 rounded border transition-all whitespace-nowrap ${g.hasShipping?'bg-indigo-600 text-white border-indigo-700 hover:bg-indigo-700':'bg-gray-100 text-gray-500 border-gray-300 hover:bg-indigo-100 hover:text-indigo-600 hover:border-indigo-300'}`}
+                      title={g.hasShipping?'택배 배송 중 (클릭: 직접수령으로 변경)':'직접 수령 (클릭: 택배비 4,000원 추가)'}
                     >
-                      {g.hasShipping?'🚚 택배':'🏪 수령'}
+                      {g.hasShipping?'🚚 택배배송':'🏪 직접수령'}
                     </button>
 
-                    {!g.allPaid?(
-                      <button onClick={()=>handleMarkAllPaid(g.orders,true)}
-                        className="text-xs bg-green-100 text-green-700 font-bold px-2 py-1 rounded border border-green-200 hover:bg-green-200">
-                        ✅ 전체입금
-                      </button>
-                    ):(
-                      <button onClick={()=>handleMarkAllPaid(g.orders,false)}
-                        className="text-xs bg-gray-100 text-gray-600 font-bold px-2 py-1 rounded border border-gray-300 hover:bg-gray-200">
-                        ↩ 취소
-                      </button>
-                    )}
-
-                    <button onClick={()=>handleAlimtalk(g)} disabled={sendingAlimtalk===g.userId}
-                      className="text-xs bg-yellow-100 text-yellow-800 font-bold px-2 py-1 rounded border border-yellow-200 hover:bg-yellow-200 disabled:opacity-50">
-                      {sendingAlimtalk===g.userId?'..':'💬'}
+                    <button onClick={e=>{e.stopPropagation();handleAlimtalk(g);}} disabled={sendingAlimtalk===g.userId}
+                      className="text-xs bg-yellow-100 text-yellow-800 font-bold px-2.5 py-1 rounded border border-yellow-200 hover:bg-yellow-200 disabled:opacity-50 whitespace-nowrap">
+                      {sendingAlimtalk===g.userId?'발송중..':'💬 알림톡'}
                     </button>
                     <a href={`/invoice/merged?userId=${encodeURIComponent(g.userId)}${dateFrom?`&from=${dateFrom}`:''}${dateTo?`&to=${dateTo}`:''}`}
                       target="_blank" onClick={e=>e.stopPropagation()}
-                      className="text-xs bg-[#673ab7] text-white font-bold px-2 py-1 rounded hover:bg-[#5e35b1]">
-                      📋
+                      className="text-xs bg-[#673ab7] text-white font-bold px-2.5 py-1 rounded hover:bg-[#5e35b1] whitespace-nowrap">
+                      📋 청구서
                     </a>
 
-                    {/* 펼침 표시 */}
-                    <span className="text-gray-400 text-xs ml-1">{expanded?'▲':'▼'}</span>
+                    <span className="text-gray-400 text-xs pointer-events-none">{expanded?'▲':'▼'}</span>
                   </div>
                 </div>
 
                 {/* ── 상세 펼침: 날짜별 ── */}
                 {expanded&&(
-                  <div className="border-t border-gray-100">
+                  <div className="border-t-2 border-[#673ab7]/20 bg-slate-50">
                     {g.dateGroups.map(dg=>{
                       const dateExp=expandedDates.has(`${g.userId}__${dg.dateKey}`);
                       return(
