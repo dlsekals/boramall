@@ -80,29 +80,68 @@ function MergedInvoiceContent() {
           return da.getTime() - db.getTime();
         });
 
-        // dateGroups 구성
-        const dateGroups: InvoiceDateGroup[] = customerOrders.map((order: {
-          createdAt: string;
-          items: { productName: string; quantity: number; price: number }[];
-          totalPrice: number;
-        }) => ({
-          date: formatDisplayDate(order.createdAt || ''),
-          items: order.items.map((i) => ({
-            name: i.productName,
-            quantity: i.quantity,
-            price: i.price,
-          })),
-          subtotal: order.totalPrice,
-        }));
+        // ── 날짜별 그룹화 (같은 날 주문 합산) ──
+        const SHIPPING_NAME = '일괄 택배비';
+        const SHIPPING_PRICE = 4000;
 
-        const totalPrice = customerOrders.reduce((s: number, o: { totalPrice: number }) => s + o.totalPrice, 0);
+        const dateMap = new Map<string, {
+          displayDate: string;
+          items: Map<string, { name: string; quantity: number; price: number }>;
+          subtotal: number;
+        }>();
+
+        for (const order of customerOrders) {
+          const d = parseKoreanDate(order.createdAt || '');
+          if (!d) continue;
+          // 날짜 키: YYYY-M-D (타임존 안전)
+          const dk = `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`;
+          if (!dateMap.has(dk)) {
+            dateMap.set(dk, { displayDate: formatDisplayDate(order.createdAt || ''), items: new Map(), subtotal: 0 });
+          }
+          const dg = dateMap.get(dk)!;
+          for (const item of order.items) {
+            if (item.productName === SHIPPING_NAME) continue; // 택배비 제외
+            const ex = dg.items.get(item.productName);
+            if (ex) { ex.quantity += item.quantity; }
+            else { dg.items.set(item.productName, { name: item.productName, quantity: item.quantity, price: item.price }); }
+            dg.subtotal += item.price * item.quantity;
+          }
+        }
+
+        // 날짜 오름차순 정렬
+        const sortedKeys = [...dateMap.keys()].sort((a, b) => {
+          const [ay,am,ad] = a.split('-').map(Number);
+          const [by,bm,bd] = b.split('-').map(Number);
+          return new Date(ay,am-1,ad).getTime() - new Date(by,bm-1,bd).getTime();
+        });
+
+        const dateGroups: InvoiceDateGroup[] = sortedKeys.map(dk => {
+          const dg = dateMap.get(dk)!;
+          return { date: dg.displayDate, items: [...dg.items.values()], subtotal: dg.subtotal };
+        });
+
+        // 택배비: 있으면 마지막 날짜 그룹에 1회 추가
+        const hasShipping = customerOrders.some(
+          (o: { items: { productName: string }[] }) => o.items.some(i => i.productName === SHIPPING_NAME)
+        );
+        if (hasShipping && dateGroups.length > 0) {
+          const last = dateGroups[dateGroups.length - 1];
+          last.items.push({ name: SHIPPING_NAME, quantity: 1, price: SHIPPING_PRICE });
+          last.subtotal += SHIPPING_PRICE;
+        }
+
+        // 상품 금액 합계 + 택배비 1회
+        const productTotal = customerOrders.reduce((s: number, o: { items: { productName: string; price: number; quantity: number }[] }) =>
+          s + o.items.filter(i => i.productName !== SHIPPING_NAME).reduce((is: number, i) => is + i.price * i.quantity, 0), 0);
+        const totalPrice = productTotal + (hasShipping ? SHIPPING_PRICE : 0);
+
         const allPaid = customerOrders.every((o: { isPaid: boolean }) => o.isPaid);
 
         let periodLabel: string;
-        if (customerOrders.length === 1) {
-          periodLabel = formatDisplayDate(customerOrders[0].createdAt || '');
+        if (sortedKeys.length === 1) {
+          periodLabel = dateGroups[0].date;
         } else {
-          periodLabel = `${formatDisplayDate(customerOrders[0].createdAt || '')} ~ ${formatDisplayDate(customerOrders[customerOrders.length - 1].createdAt || '')}`;
+          periodLabel = `${dateGroups[0].date} ~ ${dateGroups[dateGroups.length - 1].date}`;
         }
 
         const firstOrder = customerOrders[0];
@@ -116,7 +155,7 @@ function MergedInvoiceContent() {
           totalPrice,
           bankName: '새마을금고',
           accountNumber: '010-6269-9612',
-          accountHolder: '보라몰',
+          accountHolder: '보라몰(인다민)',
           isPaid: allPaid,
           dateGroups,
         });
