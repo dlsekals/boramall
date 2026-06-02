@@ -561,45 +561,48 @@ export default function OrderManagementTab() {
 
                 {/* ── 상세 펼침: 날짜별 ── */}
                 {expanded&&(
-                  <div className="border-t-2 border-amber-300 bg-amber-50">
+                  <div style={{backgroundColor:'#fef9c3', borderTop:'2px solid #fbbf24'}}>
                     {g.dateGroups.map(dg=>{
                       const dateExp=expandedDates.has(`${g.userId}__${dg.dateKey}`);
                       return(
-                        <div key={dg.dateKey} className="border-b border-amber-200 last:border-0">
+                        <div key={dg.dateKey} style={{borderBottom:'1px solid #fcd34d'}}>
 
-                          {/* 날짜 요약 행 — 부모 amber-50 배경 그대로 사용, 입금행만 녹색 오버레이 */}
+                          {/* 날짜 요약 행 */}
                           <button onClick={()=>toggleDate(g.userId,dg.dateKey)}
-                            className={`w-full flex items-center justify-between px-6 py-2.5 transition-colors text-left ${dg.isPaid?'bg-green-200/40 hover:bg-green-200/60':'bg-transparent hover:bg-amber-100'}`}>
+                            className="w-full flex items-center justify-between px-6 py-2.5 transition-colors text-left"
+                            style={{backgroundColor: dg.isPaid ? '#bbf7d0' : 'transparent'}}>
                             <div className="flex items-center gap-2.5 flex-1 min-w-0">
-                              <span className="text-xs font-black text-[#5c2e91] bg-purple-100 px-2.5 py-0.5 rounded-full border border-purple-300 shrink-0">
+                              <span className="text-xs font-black px-2.5 py-0.5 rounded-full border shrink-0"
+                                style={{color:'#5c2e91', backgroundColor:'#ede9fe', borderColor:'#a78bfa'}}>
                                 {dg.displayDate}
                               </span>
-                              <span className="text-xs text-gray-800 font-semibold truncate">
+                              <span className="text-xs font-semibold truncate" style={{color:'#1f2937'}}>
                                 {dg.productItems.slice(0,3).map(i=>`${i.productName}×${i.quantity}`).join(' / ')}
                                 {dg.productItems.length>3&&` 외 ${dg.productItems.length-3}개`}
                               </span>
                               {dg.isPaid&&<span className="text-xs text-green-700 shrink-0">✅</span>}
                             </div>
                             <div className="flex items-center gap-2 shrink-0 ml-2">
-                              <span className="font-bold text-sm text-gray-900 font-mono w-24 text-right">{dg.subtotal.toLocaleString()}원</span>
+                              <span className="font-bold text-sm font-mono w-24 text-right" style={{color:'#111827'}}>{dg.subtotal.toLocaleString()}원</span>
                               <button
                                 onClick={e=>{e.stopPropagation();handleMarkDatePaid(dg.orders,!dg.isPaid);}}
-                                className={`text-xs px-2 py-0.5 rounded font-bold border ${dg.isPaid?'bg-white/70 text-gray-600 border-gray-300 hover:bg-red-50 hover:text-red-500':'bg-white text-gray-700 border-gray-400 hover:border-green-500 hover:text-green-700'}`}>
+                                className={`text-xs px-2 py-0.5 rounded font-bold border ${dg.isPaid?'bg-white text-gray-600 border-gray-300 hover:bg-red-50 hover:text-red-500':'bg-white text-gray-700 border-gray-400 hover:border-green-500 hover:text-green-700'}`}>
                                 {dg.isPaid?'취소':'입금'}
                               </button>
-                              <span className="text-gray-600 text-xs">{dateExp?'▲':'▼'}</span>
+                              <span className="text-xs" style={{color:'#6b7280'}}>{dateExp?'▲':'▼'}</span>
                             </div>
                           </button>
 
                           {/* 날짜 상세 품목 */}
                           {dateExp&&(
-                            <div className="px-6 pb-3 pt-2 bg-amber-100/60 border-t border-amber-200">
+                            <div className="px-6 pb-3 pt-2" style={{backgroundColor:'#fef08a', borderTop:'1px solid #fcd34d'}}>
                               <div className="flex flex-wrap gap-1.5 mb-3">
                                 {dg.productItems.map((item,idx)=>(
-                                  <span key={idx} className="inline-flex items-center text-xs px-2.5 py-1 rounded-full bg-white border border-amber-300 text-gray-900 font-semibold shadow-sm">
+                                  <span key={idx} className="inline-flex items-center text-xs px-2.5 py-1 rounded-full font-semibold shadow-sm"
+                                    style={{backgroundColor:'#ffffff', border:'1px solid #fbbf24', color:'#111827'}}>
                                     {item.productName}
-                                    <span className="ml-1 font-black text-gray-900">×{item.quantity}</span>
-                                    <span className="ml-1.5 text-gray-600 font-bold">{(item.price*item.quantity).toLocaleString()}원</span>
+                                    <span className="ml-1 font-black" style={{color:'#111827'}}>×{item.quantity}</span>
+                                    <span className="ml-1.5 font-bold" style={{color:'#374151'}}>{(item.price*item.quantity).toLocaleString()}원</span>
                                   </span>
                                 ))}
                               </div>
@@ -612,7 +615,7 @@ export default function OrderManagementTab() {
                                 }} className="text-xs bg-sky-50 text-sky-700 px-3 py-1.5 rounded border border-sky-300 hover:bg-sky-100 font-bold">🏠 배송지</button>
                                 <button onClick={()=>handleDeleteDate(dg)}
                                   className="text-xs bg-red-50 text-red-700 px-3 py-1.5 rounded border border-red-300 hover:bg-red-100 font-bold">🗑 삭제</button>
-                                {dg.orders.length>1&&<span className="text-xs text-gray-700 font-semibold self-center">({dg.orders.length}건 합산)</span>}
+                                {dg.orders.length>1&&<span className="text-xs font-semibold self-center" style={{color:'#374151'}}>({dg.orders.length}건 합산)</span>}
                               </div>
                             </div>
                           )}
@@ -620,15 +623,16 @@ export default function OrderManagementTab() {
                       );
                     })}
 
-                    {/* 택배비 (있을 때만) — 청구 합계 행 제거됨 */}
+                    {/* 택배비 (있을 때만) */}
                     {g.hasShipping&&(
-                      <div className="px-6 py-2 flex items-center justify-between border-t border-amber-300 bg-amber-100/80">
-                        <span className="text-xs text-indigo-800 font-bold">📦 택배비 (1회) — 매출 미포함</span>
-                        <span className="text-xs font-bold text-indigo-800 font-mono w-24 text-right">{SHIPPING_PRICE.toLocaleString()}원</span>
+                      <div className="px-6 py-2 flex items-center justify-between" style={{borderTop:'1px solid #fcd34d', backgroundColor:'#fef08a'}}>
+                        <span className="text-xs font-bold" style={{color:'#3730a3'}}>📦 택배비 (1회) — 매출 미포함</span>
+                        <span className="text-xs font-bold font-mono w-24 text-right" style={{color:'#3730a3'}}>{SHIPPING_PRICE.toLocaleString()}원</span>
                       </div>
                     )}
                   </div>
                 )}
+
 
               </div>
             );
